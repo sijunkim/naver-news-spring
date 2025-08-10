@@ -121,3 +121,6 @@ build/
 
 # Mac OS
 .DS_Store
+
+# NestJS
+nestjs/
