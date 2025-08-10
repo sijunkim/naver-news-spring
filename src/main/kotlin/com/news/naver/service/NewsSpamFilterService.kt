@@ -1,6 +1,6 @@
 package com.news.naver.service
 
-import com.news.naver.domain.SpamKeywordLog
+import com.news.naver.entity.SpamKeywordLogEntity
 import com.news.naver.property.AppProperties
 import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
@@ -22,7 +22,7 @@ class NewsSpamFilterService(
 
     suspend fun recordKeywords(newsTitle: String) {
         val keywords = extractKeywords(newsTitle)
-        val logs = keywords.map { SpamKeywordLog(keyword = it) }
+        val logs = keywords.map { SpamKeywordLogEntity(keyword = it) }
         spamKeywordLogRepository.saveAll(logs).collect { /* consume the flow */ }
     }
 

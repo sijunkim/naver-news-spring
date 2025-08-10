@@ -1,29 +1,16 @@
-package com.news.naver.service
-
-import com.news.naver.client.NaverNewsClient
-import com.news.naver.client.NaverNewsResponse
-import com.news.naver.client.SlackClient
-import com.news.naver.common.HashUtils
-import com.news.naver.domain.DeliveryLog
-import com.news.naver.domain.DeliveryStatus
-import com.news.naver.domain.NewsArticle
-import com.news.naver.domain.NewsChannel
-import com.news.naver.property.SlackProperties
-import com.news.naver.repository.DeliveryLogRepository
-import com.news.naver.repository.NewsArticleRepository
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
-import java.net.URL
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-
+/**
+ * 뉴스 수집, 필터링, 저장 및 슬랙 전송의 전체 파이프라인을 처리하는 서비스 클래스입니다.
+ * NestJS 프로젝트의 핵심 비즈니스 로직을 Kotlin 코루틴 기반으로 재구현했습니다.
+ *
+ * @property naverNewsClient 네이버 뉴스 API 호출 클라이언트
+ * @property slackClient 슬랙 웹훅 호출 클라이언트
+ * @property newsFilterService 뉴스 필터링 로직을 담당하는 서비스
+ * @property newsRefinerService 뉴스 데이터 정제 및 슬랙 페이로드 생성을 담당하는 서비스
+ * @property newsSpamFilterService 스팸 키워드 필터링 로직을 담당하는 서비스
+ * @property newsArticleRepository 뉴스 기사 데이터에 접근하기 위한 리포지토리
+ * @property deliveryLogRepository 전송 로그 데이터에 접근하기 위한 리포지토리
+ * @property slackProperties 슬랙 관련 설정
+ */
 @Service
 class NewsProcessingService(
     private val naverNewsClient: NaverNewsClient,
@@ -37,7 +24,18 @@ class NewsProcessingService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    suspend fun processNews(channel: NewsChannel) = coroutineScope {
+    /**
+     * 특정 뉴스 채널(속보, 단독 등)에 대한 뉴스 처리 파이프라인을 실행합니다.
+     * 다음 단계를 포함합니다:
+     * 1. 마지막 수신 시간보다 새로운 뉴스 필터링
+     * 2. DB에 없는 새로운 뉴스 필터링 (해시 기준)
+     * 3. 스팸 키워드 필터링
+     * 4. 제외 키워드/언론사 필터링
+     * 5. 필터링을 통과한 뉴스 저장 및 슬랙 전송
+     *
+     * @param channel 처리할 뉴스 채널 (BREAKING, EXCLUSIVE, DEV)
+     */
+    suspend fun processNews(channel: com.news.naver.data.enum.NewsChannel) = coroutineScope {
         logger.info("Start processing news for channel: ${channel.name}")
 
         val lastArticleTime = newsArticleRepository.findTopByOrderByPublishedAtDesc()?.publishedAt ?: LocalDateTime.now().minusDays(1)
@@ -70,7 +68,7 @@ class NewsProcessingService(
                     slackClient.sendMessage(webhookUrl, payload)
 
                     deliveryLogRepository.save(
-                        DeliveryLog(
+                        DeliveryLogEntity(
                             articleId = savedArticle.id!!,
                             channel = channel,
                             status = DeliveryStatus.SUCCESS,
@@ -83,13 +81,29 @@ class NewsProcessingService(
         logger.info("Finished processing news for channel: ${channel.name}")
     }
 
+    /**
+     * 주어진 URL을 정규화합니다. 프로토콜, 호스트, 경로만 남기고 쿼리 파라미터나 프래그먼트를 제거합니다.
+     *
+     * @param url 정규화할 원본 URL
+     * @return 정규화된 URL 문자열
+     */
     private fun normalizeUrl(url: String): String {
         val parsedUrl = URL(url)
         return "${parsedUrl.protocol}://${parsedUrl.host}${parsedUrl.path}"
     }
 
-    private suspend fun createNewsArticle(item: NaverNewsResponse.Item, pubDate: LocalDateTime, normalizedUrl: String, hash: String): NewsArticle {
-        return NewsArticle(
+    /**
+     * 네이버 뉴스 API 응답 아이템을 NewsArticleEntity로 변환합니다.
+     * 이 과정에서 제목, 요약, 언론사 정보 등을 정제합니다.
+     *
+     * @param item 네이버 뉴스 API 응답의 개별 아이템
+     * @param pubDate 파싱된 발행일시 (LocalDateTime)
+     * @param normalizedUrl 정규화된 기사 URL
+     * @param hash 정규화된 URL의 SHA-256 해시
+     * @return 변환된 NewsArticleEntity 객체
+     */
+    private suspend fun createNewsArticle(item: NaverNewsResponse.Item, pubDate: LocalDateTime, normalizedUrl: String, hash: String): NewsArticleEntity {
+        return NewsArticleEntity(
             naverLinkHash = hash,
             title = newsRefinerService.refineHtml(item.title),
             summary = newsRefinerService.refineHtml(item.description),
@@ -99,6 +113,13 @@ class NewsProcessingService(
         )
     }
 
+    /**
+     * 주어진 발행일 문자열을 LocalDateTime 객체로 파싱합니다.
+     * RFC_1123_DATE_TIME 형식을 사용합니다.
+     *
+     * @param pubDate 파싱할 발행일 문자열
+     * @return 파싱된 LocalDateTime 객체
+     */
     private fun parseDate(pubDate: String): LocalDateTime {
         return try {
             ZonedDateTime.parse(pubDate, DateTimeFormatter.RFC_1123_DATE_TIME).toLocalDateTime()
@@ -107,17 +128,34 @@ class NewsProcessingService(
         }
     }
 
-    private fun getWebhookUrl(channel: NewsChannel): String {
+    /**
+     * 뉴스 채널에 해당하는 슬랙 웹훅 URL을 반환합니다.
+     *
+     * @param channel 뉴스 채널
+     * @return 해당 채널의 슬랙 웹훅 URL
+     */
+    private fun getWebhookUrl(channel: com.news.naver.data.enum.NewsChannel): String {
         return when (channel) {
-            NewsChannel.BREAKING -> slackProperties.webhook.breaking
-            NewsChannel.EXCLUSIVE -> slackProperties.webhook.exclusive
-            NewsChannel.DEV -> slackProperties.webhook.develop
+            com.news.naver.data.enum.NewsChannel.BREAKING -> slackProperties.webhook.breaking
+            com.news.naver.data.enum.NewsChannel.EXCLUSIVE -> slackProperties.webhook.exclusive
+            com.news.naver.data.enum.NewsChannel.DEV -> slackProperties.webhook.develop
         }
     }
 }
 
+/**
+ * 네 개의 값을 묶는 제네릭 데이터 클래스입니다.
+ * Kotlin 1.3 이상에서는 Triple을 확장하여 사용할 수 있습니다.
+ */
 fun <A, B, C, D> quadruple(a: A, b: B, c: C, d: D): Quadruple<A, B, C, D> = Quadruple(a, b, c, d)
 data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
-// NewsArticleRepository 에 추가되어야 할 메소드
-suspend fun NewsArticleRepository.findTopByOrderByPublishedAtDesc(): NewsArticle? = this.findAll().toList().maxByOrNull { it.publishedAt!! }
+/**
+ * NewsArticleRepository에 추가되어야 할 확장 함수입니다.
+ * 발행일(publishedAt)을 기준으로 가장 최신 뉴스 기사를 찾아 반환합니다.
+ * R2DBC는 `findTopByOrderBy...`를 직접 지원하지 않으므로, 모든 데이터를 가져와 코틀린에서 처리합니다.
+ * 대규모 데이터셋에서는 비효율적일 수 있으나, 현재 사용 사례에서는 허용됩니다.
+ *
+ * @return 가장 최신 뉴스 기사 엔티티 또는 없을 경우 null
+ */
+suspend fun com.news.naver.repository.NewsArticleRepository.findTopByOrderByPublishedAtDesc(): com.news.naver.entity.NewsArticleEntity? = this.findAll().toList().maxByOrOrNull { it.publishedAt!! }
