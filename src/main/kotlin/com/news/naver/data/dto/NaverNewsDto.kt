@@ -1,3 +1,9 @@
+package com.news.naver.data.dto
+
+import com.fasterxml.jackson.annotation.JsonRootName
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlText
+
 /**
  * 네이버 뉴스 Open API의 XML 응답을 매핑하기 위한 데이터 클래스입니다.
  * `jackson-dataformat-xml` 라이브러리를 사용하여 XML 요소를 Kotlin 객체로 변환합니다.
@@ -42,3 +48,4 @@ data class NaverNewsResponse(
         val pubDate: String
     )
 }
+

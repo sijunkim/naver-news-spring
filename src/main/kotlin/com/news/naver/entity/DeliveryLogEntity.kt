@@ -1,3 +1,11 @@
+package com.news.naver.entity
+
+import com.news.naver.data.enum.DeliveryStatus
+import com.news.naver.data.enum.NewsChannel
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Table
+import java.time.LocalDateTime
+
 /**
  * 뉴스 전송 로그를 나타내는 엔티티 클래스입니다.
  * `delivery_log` 테이블과 매핑됩니다.

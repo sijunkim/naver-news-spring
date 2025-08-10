@@ -1,3 +1,8 @@
+package com.news.naver.entity
+
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Table
+
 /**
  * 언론사 정보를 나타내는 엔티티 클래스입니다.
  * `news_company` 테이블과 매핑됩니다.

@@ -1,3 +1,13 @@
+package com.news.naver.client
+
+import com.news.naver.data.dto.NaverNewsResponse
+import com.news.naver.property.NaverProperties
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
+
 /**
  * 네이버 뉴스 Open API와 통신하는 클라이언트 클래스입니다.
  * `WebClient`를 사용하여 비동기적으로 뉴스 데이터를 가져옵니다.

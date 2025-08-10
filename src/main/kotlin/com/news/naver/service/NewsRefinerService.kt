@@ -1,3 +1,18 @@
+package com.news.naver.service
+
+import com.news.naver.data.constant.MessageConstants
+import com.news.naver.data.constant.RegexConstants
+import com.news.naver.data.constant.TimeConstants
+import com.news.naver.entity.NewsArticleEntity
+import com.news.naver.repository.NewsCompanyCustomRepository
+import kotlinx.coroutines.flow.toList
+import org.springframework.stereotype.Service
+import java.net.URL
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
 /**
  * 뉴스 데이터를 정제하고 슬랙 메시지 페이로드를 생성하는 서비스 클래스입니다.
  * NestJS 프로젝트의 `NewsRefiner` 역할을 Kotlin 코루틴 기반으로 재구현했습니다.
@@ -5,7 +20,7 @@
  * @property newsCompanyRepository 언론사 정보를 조회하기 위한 리포지토리
  */
 @Service
-class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepository) {
+class NewsRefinerService(private val newsCompanyCustomRepository: NewsCompanyCustomRepository) {
 
     /**
      * 언론사 목록을 캐싱하기 위한 내부 변수입니다.
@@ -17,7 +32,7 @@ class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepositor
      * 언론사 추출 로직의 효율성을 높이기 위해 사용됩니다.
      */
     suspend fun initialize() {
-        companyList = newsCompanyRepository.findAll().toList()
+        companyList = newsCompanyCustomRepository.selectNewsCompanyAll()
             .map { it.domainPrefix to it.name }
             .sortedBy { it.first }
     }
@@ -30,10 +45,10 @@ class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepositor
      * @return HTML 태그와 엔티티가 제거된 정제된 텍스트
      */
     suspend fun refineHtml(text: String?): String {
-        if (text == null) return "내용없음"
+        if (text == null) return MessageConstants.NO_CONTENT_AVAILABLE
         return text
-            .replace(Regex("(<([^>]+)>)"), "")
-            .replace("&quot;", "\"")
+            .replace(Regex(RegexConstants.HTML_TAG_REGEX), "")
+            .replace("&quot;", """)
             .replace("&#039;", "'")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
@@ -55,7 +70,7 @@ class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepositor
             val koreaTime = zonedDateTime.withZoneSameInstant(ZoneId.of("Asia/Seoul"))
             val dayOfWeekNames = arrayOf("(일)", "(월)", "(화)", "(수)", "(목)", "(금)", "(토)")
             val dayOfWeek = dayOfWeekNames[koreaTime.dayOfWeek.value % 7]
-            koreaTime.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 $dayOfWeek HH:mm:ss"))
+            koreaTime.format(DateTimeFormatter.ofPattern(TimeConstants.KOREAN_DATE_TIME_FORMAT))
         } catch (e: Exception) {
             pubDate
         }
@@ -73,14 +88,14 @@ class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepositor
         if (companyList.isEmpty()) initialize()
 
         val address = originalLink.lowercase()
-            .replace(Regex("^(https?://)?(www\\.)?(news\\.)?(view\\.)?(post\\.)?(photo\\.)?(photos\\.)?(blog\\.)?"), "")
+            .replace(Regex(RegexConstants.URL_PREFIX_REGEX), "")
         val domain = try { URL(originalLink).host } catch (e: Exception) { address }
 
         val index = searchSourceIndex(address)
         return if (index != -1) {
             companyList[index].second
         } else {
-            domain.split(".").getOrNull(0) ?: "(알수없음)"
+            domain.split(".").getOrNull(0) ?: MessageConstants.UNKNOWN_PRESS
         }
     }
 

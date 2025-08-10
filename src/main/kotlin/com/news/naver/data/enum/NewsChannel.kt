@@ -1,3 +1,5 @@
+package com.news.naver.data.enum
+
 /**
  * 뉴스 채널의 종류를 정의하는 Enum 클래스입니다.
  * 각 채널은 네이버 뉴스 API 호출 시 사용될 쿼리 문자열을 가집니다.

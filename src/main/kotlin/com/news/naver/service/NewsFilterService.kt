@@ -1,14 +1,27 @@
+package com.news.naver.service
+
+import com.news.naver.data.dto.NaverNewsResponse
+import com.news.naver.data.enum.ExclusionScope
+import com.news.naver.data.enum.NewsChannel
+import com.news.naver.repository.KeywordExclusionCustomRepository
+import com.news.naver.repository.PressExclusionCustomRepository
+import com.news.naver.entity.KeywordExclusionEntity
+import com.news.naver.entity.PressExclusionEntity
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.springframework.stereotype.Service
+
 /**
  * 뉴스 필터링 로직을 담당하는 서비스 클래스입니다.
  * 제외 키워드 및 언론사 목록을 관리하고, 이를 기반으로 뉴스를 필터링합니다.
  *
- * @property keywordExclusionRepository 키워드 제외 목록 데이터에 접근하기 위한 리포지토리
- * @property pressExclusionRepository 언론사 제외 목록 데이터에 접근하기 위한 리포지토리
+ * @property keywordExclusionCustomRepository 키워드 제외 목록 데이터에 접근하기 위한 커스텀 리포지토리
+ * @property pressExclusionCustomRepository 언론사 제외 목록 데이터에 접근하기 위한 커스텀 리포지토리
  */
 @Service
 class NewsFilterService(
-    private val keywordExclusionRepository: KeywordExclusionRepository,
-    private val pressExclusionRepository: PressExclusionRepository
+    private val keywordExclusionCustomRepository: KeywordExclusionCustomRepository,
+    private val pressExclusionCustomRepository: PressExclusionCustomRepository
 ) {
 
     /**
@@ -18,11 +31,10 @@ class NewsFilterService(
      * @param channel 뉴스 채널 (BREAKING, EXCLUSIVE, DEV)
      * @return 제외할 키워드들의 Set (소문자 처리됨)
      */
-    suspend fun getExcludedKeywords(channel: com.news.naver.data.enum.NewsChannel): Set<String> {
-        val scopes = listOf(com.news.naver.data.enum.ExclusionScope.ALL, com.news.naver.data.enum.ExclusionScope.valueOf(channel.name))
-        return keywordExclusionRepository.findAllByScopeIn(scopes)
+    suspend fun getExcludedKeywords(channel: NewsChannel): Set<String> {
+        val scopes = listOf(ExclusionScope.ALL, ExclusionScope.valueOf(channel.name))
+        return keywordExclusionCustomRepository.selectKeywordExclusionAllByScopeIn(scopes)
             .map { it.keyword.lowercase() }
-            .toList()
             .toSet()
     }
 
@@ -32,9 +44,8 @@ class NewsFilterService(
      * @return 제외할 언론사 이름들의 Set (소문자 처리됨)
      */
     suspend fun getExcludedPresses(): Set<String> {
-        return pressExclusionRepository.findAll()
+        return pressExclusionCustomRepository.selectPressExclusionAll()
             .map { it.pressName.lowercase() }
-            .toList()
             .toSet()
     }
 
@@ -47,7 +58,7 @@ class NewsFilterService(
      * @param excludedPresses 제외할 언론사 Set
      * @return 뉴스가 제외되어야 하면 true, 아니면 false
      */
-    fun filter(item: com.news.naver.data.dto.NaverNewsResponse.Item, excludedKeywords: Set<String>, excludedPresses: Set<String>): Boolean {
+    fun filter(item: NaverNewsResponse.Item, excludedKeywords: Set<String>, excludedPresses: Set<String>): Boolean {
         val title = item.title.lowercase()
         // 언론사 정보는 API 응답에 없으므로, 제목에 포함된 경우를 가정하여 필터링 (한계점)
         if (excludedPresses.any { title.contains(it) }) {

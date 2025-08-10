@@ -61,7 +61,7 @@ class NewsPollingScheduler(
                     spamFilterService.cleanupOldKeywords()
                 } catch (e: Exception) {
                     logger.error("Error during spam keyword cleanup", e)
-                }
+                } 
             }
         }
     }

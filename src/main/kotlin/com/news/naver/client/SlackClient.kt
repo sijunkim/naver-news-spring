@@ -1,3 +1,22 @@
+package com.news.naver.client
+
+import com.news.naver.data.constant.TimeConstants
+import io.netty.handler.timeout.ReadTimeoutHandler
+import io.netty.handler.timeout.WriteTimeoutHandler
+import kotlinx.coroutines.reactor.awaitSingle
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
+import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
+import reactor.util.retry.Retry
+import java.time.Duration
+import java.util.concurrent.TimeUnit
+
 /**
  * Slack Webhook과 통신하는 클라이언트 클래스입니다.
  * `WebClient`를 사용하여 비동기적으로 메시지를 슬랙으로 전송합니다.
@@ -13,8 +32,8 @@ class SlackClient {
     init {
         val httpClient = HttpClient.create()
             .doOnConnected {
-                it.addHandlerLast(ReadTimeoutHandler(10, TimeUnit.SECONDS))
-                it.addHandlerLast(WriteTimeoutHandler(10, TimeUnit.SECONDS))
+                it.addHandlerLast(ReadTimeoutHandler(TimeConstants.READ_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+                it.addHandlerLast(WriteTimeoutHandler(TimeConstants.WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS))
             }
 
         webClient = WebClient.builder()

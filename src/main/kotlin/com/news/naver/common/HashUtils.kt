@@ -1,3 +1,7 @@
+package com.news.naver.common
+
+import java.security.MessageDigest
+
 /**
  * 해시 관련 유틸리티 함수를 제공하는 객체입니다.
  */

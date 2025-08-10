@@ -1,3 +1,10 @@
+package com.news.naver.entity
+
+import com.news.naver.data.enum.ExclusionScope
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Table
+import java.time.LocalDateTime
+
 /**
  * 제외할 키워드 정보를 나타내는 엔티티 클래스입니다.
  * `keyword_exclusion` 테이블과 매핑됩니다.
@@ -15,3 +22,4 @@ data class KeywordExclusionEntity(
     val keyword: String,
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
+

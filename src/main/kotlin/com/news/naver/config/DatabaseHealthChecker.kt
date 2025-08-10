@@ -1,3 +1,10 @@
+package com.news.naver.config
+
+import org.slf4j.LoggerFactory
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.awaitOne
+import org.springframework.stereotype.Component
+
 /**
  * 데이터베이스 연결 상태를 확인하는 컴포넌트 클래스입니다.
  * 애플리케이션 시작 시 DB 연결이 정상적인지 검증하는 역할을 합니다.
