@@ -4,7 +4,7 @@ import com.news.naver.data.constant.RegexConstants
 import com.news.naver.data.constant.TimeConstants
 import com.news.naver.entity.SpamKeywordLogEntity
 import com.news.naver.property.AppProperties
-import com.news.naver.repository.SpamKeywordLogCustomRepository
+import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
@@ -17,7 +17,7 @@ import java.time.LocalDateTime
  */
 @Service
 class NewsSpamFilterService(
-    private val spamKeywordLogCustomRepository: SpamKeywordLogCustomRepository,
+    private val spamKeywordLogRepository: SpamKeywordLogRepository,
     private val appProperties: AppProperties
 ) {
 
@@ -32,7 +32,7 @@ class NewsSpamFilterService(
         val keywords = extractKeywords(newsTitle)
         if (keywords.isEmpty()) return false
 
-        val duplicatedCount = spamKeywordLogCustomRepository.countSpamKeywordLogByKeywordIn(keywords)
+        val duplicatedCount = spamKeywordLogRepository.countSpamKeywordLogByKeywordIn(keywords)
         return duplicatedCount > appProperties.duplicate.threshold
     }
 
@@ -55,7 +55,7 @@ class NewsSpamFilterService(
     suspend fun cleanupOldKeywords() {
         // 2시간 이전의 키워드 로그 삭제
         val twoHoursAgo = LocalDateTime.now().minusHours(TimeConstants.SPAM_KEYWORD_CLEANUP_HOURS)
-        spamKeywordLogCustomRepository.deleteSpamKeywordLogAllByCreatedAtBefore(twoHoursAgo)
+        spamKeywordLogRepository.deleteSpamKeywordLogAllByCreatedAtBefore(twoHoursAgo)
     }
 
     /**

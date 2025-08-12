@@ -3,8 +3,8 @@ package com.news.naver.service
 import com.news.naver.data.dto.NaverNewsResponse
 import com.news.naver.data.enum.ExclusionScope
 import com.news.naver.data.enum.NewsChannel
-import com.news.naver.repository.KeywordExclusionCustomRepository
-import com.news.naver.repository.PressExclusionCustomRepository
+import com.news.naver.repository.KeywordExclusionRepository
+import com.news.naver.repository.PressExclusionRepository
 import com.news.naver.entity.KeywordExclusionEntity
 import com.news.naver.entity.PressExclusionEntity
 import kotlinx.coroutines.flow.map
@@ -15,13 +15,13 @@ import org.springframework.stereotype.Service
  * 뉴스 필터링 로직을 담당하는 서비스 클래스입니다.
  * 제외 키워드 및 언론사 목록을 관리하고, 이를 기반으로 뉴스를 필터링합니다.
  *
- * @property keywordExclusionCustomRepository 키워드 제외 목록 데이터에 접근하기 위한 커스텀 리포지토리
- * @property pressExclusionCustomRepository 언론사 제외 목록 데이터에 접근하기 위한 커스텀 리포지토리
+ * @property keywordExclusionRepository 키워드 제외 목록 데이터에 접근하기 위한 리포지토리
+ * @property pressExclusionRepository 언론사 제외 목록 데이터에 접근하기 위한 리포지토리
  */
 @Service
 class NewsFilterService(
-    private val keywordExclusionCustomRepository: KeywordExclusionCustomRepository,
-    private val pressExclusionCustomRepository: PressExclusionCustomRepository
+    private val keywordExclusionRepository: KeywordExclusionRepository,
+    private val pressExclusionRepository: PressExclusionRepository
 ) {
 
     /**
@@ -33,7 +33,7 @@ class NewsFilterService(
      */
     suspend fun getExcludedKeywords(channel: NewsChannel): Set<String> {
         val scopes = listOf(ExclusionScope.ALL, ExclusionScope.valueOf(channel.name))
-        return keywordExclusionCustomRepository.selectKeywordExclusionAllByScopeIn(scopes)
+        return keywordExclusionRepository.selectKeywordExclusionAllByScopeIn(scopes)
             .map { it.keyword.lowercase() }
             .toSet()
     }
@@ -44,7 +44,7 @@ class NewsFilterService(
      * @return 제외할 언론사 이름들의 Set (소문자 처리됨)
      */
     suspend fun getExcludedPresses(): Set<String> {
-        return pressExclusionCustomRepository.selectPressExclusionAll()
+        return pressExclusionRepository.selectPressExclusionAll()
             .map { it.pressName.lowercase() }
             .toSet()
     }

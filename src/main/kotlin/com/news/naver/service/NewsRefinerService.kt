@@ -20,7 +20,7 @@ import java.util.Locale
  * @property newsCompanyRepository 언론사 정보를 조회하기 위한 리포지토리
  */
 @Service
-class NewsRefinerService(private val newsCompanyCustomRepository: NewsCompanyCustomRepository) {
+class NewsRefinerService(private val newsCompanyRepository: NewsCompanyRepository) {
 
     /**
      * 언론사 목록을 캐싱하기 위한 내부 변수입니다.
@@ -32,9 +32,7 @@ class NewsRefinerService(private val newsCompanyCustomRepository: NewsCompanyCus
      * 언론사 추출 로직의 효율성을 높이기 위해 사용됩니다.
      */
     suspend fun initialize() {
-        companyList = newsCompanyCustomRepository.selectNewsCompanyAll()
-            .map { it.domainPrefix to it.name }
-            .sortedBy { it.first }
+        companyList = newsCompanyRepository.selectNewsCompanyAll()
     }
 
     /**

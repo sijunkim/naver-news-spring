@@ -1,13 +1,58 @@
 package com.news.naver.repository
 
 import com.news.naver.entity.NewsArticleEntity
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.convert.MappingR2dbcConverter
 import org.springframework.stereotype.Repository
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.data.relational.core.query.Query
+import org.springframework.data.relational.core.query.Criteria.where
 
-/**
- * 뉴스 기사(NewsArticleEntity) 데이터에 접근하기 위한 리포지토리 인터페이스입니다.
- * Spring Data R2DBC의 CoroutineCrudRepository를 확장하여 비동기 DB 작업을 지원합니다.
- */
 @Repository
-interface NewsArticleRepository : CoroutineCrudRepository<NewsArticleEntity, Long> {
+class NewsArticleRepository(
+    private val template: R2dbcEntityTemplate,
+    private val converter: MappingR2dbcConverter
+) {
+
+    // CREATE
+    suspend fun createNewsArticle(entity: NewsArticleEntity): NewsArticleEntity {
+        return template.insert(entity).awaitSingle()
+    }
+
+    // SELECT by ID
+    suspend fun selectNewsArticleById(id: Long): NewsArticleEntity? {
+        return template.selectOne(Query.query(where("id").eq(id)), NewsArticleEntity::class.java).awaitSingleOrNull()
+    }
+
+    // SELECT ALL
+    suspend fun selectNewsArticleAll(): List<NewsArticleEntity> {
+        return template.select(NewsArticleEntity::class.java).all().collectList().awaitSingle()
+    }
+
+    // UPDATE
+    suspend fun updateNewsArticle(entity: NewsArticleEntity): NewsArticleEntity {
+        return template.update(entity).awaitSingle()
+    }
+
+    // DELETE by ID
+    suspend fun deleteNewsArticleById(id: Long) {
+        template.delete(Query.query(where("id").eq(id)), NewsArticleEntity::class.java).awaitSingleOrNull()
+    }
+
+    // Custom Queries (from previous implementation)
+    suspend fun countNewsArticleByNaverLinkHash(hash: String): Long {
+        val sql = "SELECT COUNT(*) FROM news_article WHERE naver_link_hash = :hash"
+        return template.databaseClient.sql(sql)
+            .bind("hash", hash)
+            .map { row, _ -> row.get(0, java.lang.Long::class.java) }
+            .awaitSingle()
+    }
+
+    suspend fun selectNewsArticleLatest(): NewsArticleEntity? {
+        val sql = "SELECT * FROM news_article ORDER BY published_at DESC LIMIT 1"
+        return template.databaseClient.sql(sql)
+            .map { row, metaData -> converter.read(NewsArticleEntity::class.java, row, metaData) }
+            .awaitSingleOrNull()
+    }
 }
