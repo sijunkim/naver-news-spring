@@ -12,5 +12,11 @@ enum class NewsChannel(val query: String) {
     /** 단독 채널 */
     EXCLUSIVE("단독"),
     /** 개발/테스트 채널 */
-    DEV("테스트")
+    DEV("테스트");
+
+    fun toExclusionScope(): ExclusionScope = when (this) {
+        BREAKING -> ExclusionScope.BREAKING
+        EXCLUSIVE -> ExclusionScope.EXCLUSIVE
+        DEV -> ExclusionScope.ALL
+    }
 }
