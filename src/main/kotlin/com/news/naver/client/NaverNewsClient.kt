@@ -27,7 +27,7 @@ class NaverNewsClient(
         start: Int = 1,
         sort: String = "date"
     ): NewsResponse {
-        val uri = UriComponentsBuilder.fromUriString(props.url)
+        val uri = UriComponentsBuilder.fromUriString(props.openapi.url)
             .queryParam("query", query)
             .queryParam("display", display)
             .queryParam("start", start)
@@ -39,8 +39,8 @@ class NaverNewsClient(
         return webClient.get()
             .uri(uri)
             .accept(MediaType.APPLICATION_JSON)
-            .header("X-Naver-Client-Id", props.clientId)
-            .header("X-Naver-Client-Secret", props.clientSecret)
+            .header("X-Naver-Client-Id", props.openapi.clientId)
+            .header("X-Naver-Client-Secret", props.openapi.clientSecret)
             .retrieve()
             .bodyToMono(NewsResponse::class.java)
             .awaitSingle()
