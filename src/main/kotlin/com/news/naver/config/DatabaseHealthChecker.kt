@@ -2,7 +2,7 @@ package com.news.naver.config
 
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.core.awaitOne
+import org.springframework.r2dbc.core.awaitOne
 import org.springframework.stereotype.Component
 
 /**

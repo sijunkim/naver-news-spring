@@ -4,10 +4,9 @@ import com.news.naver.client.NaverNewsClient
 import com.news.naver.client.SlackClient
 import com.news.naver.common.HashUtils
 import com.news.naver.data.constant.MessageConstants
+import com.news.naver.data.dto.Item
 import com.news.naver.data.dto.NaverNewsItem
 import com.news.naver.data.enum.NewsChannel
-import com.news.naver.entity.DeliveryLogEntity
-import com.news.naver.entity.NewsArticleEntity
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import kotlinx.coroutines.async
@@ -18,7 +17,7 @@ import java.time.LocalDateTime
 
 @Service
 class NewsProcessingService(
-    private val naver: NaverNewsClient,
+    private val naverNewsClient: NaverNewsClient,
     private val slack: SlackClient,
     private val refiner: NewsRefinerService,
     private val filter: NewsFilterService,
@@ -31,20 +30,20 @@ class NewsProcessingService(
      * 채널별 1회 실행 (스케줄러/수동 트리거에서 호출)
      */
     suspend fun runOnce(channel: NewsChannel) {
-        val resp = naver.search(channel.query, display = 30, start = 1, sort = "date")
+        val resp = naverNewsClient.search(channel.query, display = 30, start = 1, sort = "date")
 
         // NestJS 동작과 동일하게: 제목에 키워드 포함된 기사만 선별
-        val items = resp.items.filter { it.title?.contains(channel.query) == true }
+        val items = resp.channel.items.filter { it.title.contains(channel.query) }
 
         coroutineScope {
             items.map { async { processItem(channel, it) } }.awaitAll()
         }
     }
 
-    private suspend fun processItem(channel: NewsChannel, item: NaverNewsItem) {
+    private suspend fun processItem(channel: NewsChannel, item: Item) {
         val title = refiner.refineTitle(item.title)
         val description = refiner.refineDescription(item.description)
-        val company = refiner.extractCompany(item.link, item.originallink)
+        val company = refiner.extractCompany(item.link, item.originalLink)
 
         val normalizedUrl = HashUtils.normalizeUrl(item.link)
         val hash = HashUtils.sha256(normalizedUrl)
