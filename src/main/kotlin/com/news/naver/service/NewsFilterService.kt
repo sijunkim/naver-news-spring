@@ -17,7 +17,7 @@ class NewsFilterService(
      * - 제외 키워드: scope IN (ALL, {채널})
      * - 제외 언론사: press_exclusion 전체
      */
-    suspend fun isExcluded(title: String?, companyDomain: String?, channel: NewsChannel): Boolean {
+    suspend fun isExcluded(title: String?, companyName: String?, channel: NewsChannel): Boolean {
         val scopes = listOf(ExclusionScope.ALL, channel.toExclusionScope())
         val keywords = keywordRepo
             .selectKeywordExclusionAllByScopeIn(scopes)
@@ -30,8 +30,8 @@ class NewsFilterService(
         val excludedPress = pressRepo.selectPressExclusionAll()
             .map { it.pressName.lowercase() }
             .toSet()
-        val domain = companyDomain?.lowercase()
-        if (domain != null && excludedPress.any { domain.contains(it) }) return true
+        val name = companyName?.lowercase()
+        if (name != null && excludedPress.contains(name)) return true
 
         return false
     }

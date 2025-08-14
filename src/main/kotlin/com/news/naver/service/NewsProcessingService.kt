@@ -5,10 +5,10 @@ import com.news.naver.client.SlackClient
 import com.news.naver.common.HashUtils
 import com.news.naver.data.constant.MessageConstants
 import com.news.naver.data.dto.Item
-import com.news.naver.data.dto.NaverNewsItem
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
+import com.news.naver.repository.NewsCompanyRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,6 +24,7 @@ class NewsProcessingService(
     private val spam: NewsSpamFilterService,
     private val articleRepo: NewsArticleRepository,
     private val deliveryRepo: DeliveryLogRepository,
+    private val newsCompanyRepository: NewsCompanyRepository
 ) {
 
     /**
@@ -43,7 +44,8 @@ class NewsProcessingService(
     private suspend fun processItem(channel: NewsChannel, item: Item) {
         val title = refiner.refineTitle(item.title)
         val description = refiner.refineDescription(item.description)
-        val company = refiner.extractCompany(item.link, item.originalLink)
+        val companyDomain = refiner.extractCompany(item.link, item.originalLink)
+        val company = companyDomain?.let { newsCompanyRepository.selectNewsCompanyByDomainPrefix(it) }
 
         val normalizedUrl = HashUtils.normalizeUrl(item.link)
         val hash = HashUtils.sha256(normalizedUrl)
@@ -52,7 +54,7 @@ class NewsProcessingService(
         if (articleRepo.countNewsArticleByHash(hash) > 0L) return
 
         // 제외 룰 검사
-        if (filter.isExcluded(title, company, channel)) return
+        if (filter.isExcluded(title, company?.name, channel)) return
 
         // 스팸(중복 키워드) 검사
         val isSpam = spam.isSpamByTitleTokens(title, threshold = 5 /* app.duplicate.threshold 사용 가능 */)
@@ -63,7 +65,7 @@ class NewsProcessingService(
             naverLinkHash = hash,
             title = title,
             summary = description,
-            press = company,
+            companyId = company?.id,
             publishedAt = LocalDateTime.now(), // 필요 시 refiner.pubDateToKst(item.pubDate) 파싱하여 사용
             fetchedAt = LocalDateTime.now(),
             rawJson = null
@@ -79,7 +81,7 @@ class NewsProcessingService(
             NewsChannel.EXCLUSIVE -> MessageConstants.SLACK_PREFIX_EXCLUSIVE
             NewsChannel.DEV -> MessageConstants.SLACK_PREFIX_DEV
         }
-        val text = refiner.slackText(prefix, title, normalizedUrl, company)
+        val text = refiner.slackText(prefix, title, normalizedUrl, company?.name)
         val sendResult = slack.send(channel, text)
 
         // 전송 로그

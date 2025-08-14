@@ -257,7 +257,8 @@ CREATE TABLE IF NOT EXISTS spam_keyword_log (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   keyword VARCHAR(200) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_created_at (created_at)
+  INDEX idx_created_at (created_at),
+  INDEX idx_keyword (keyword)
 );
 
 
@@ -266,11 +267,12 @@ CREATE TABLE IF NOT EXISTS news_article (
   naver_link_hash CHAR(64) NOT NULL UNIQUE,
   title VARCHAR(500) NOT NULL,
   summary TEXT NULL,
-  press VARCHAR(100) NULL,
+  company_id BIGINT NULL,
   published_at DATETIME NULL,
   fetched_at DATETIME NOT NULL,
   raw_json JSON NULL,
-  INDEX idx_published_at (published_at DESC)
+  INDEX idx_published_at (published_at DESC),
+  CONSTRAINT fk_news_article_company FOREIGN KEY (company_id) REFERENCES news_company(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS delivery_log (
@@ -282,7 +284,8 @@ CREATE TABLE IF NOT EXISTS delivery_log (
   sent_at DATETIME NOT NULL,
   response_body TEXT NULL,
   UNIQUE KEY uniq_article_channel (article_id, channel),
-  INDEX idx_sent_at (sent_at DESC)
+  INDEX idx_sent_at (sent_at DESC),
+  CONSTRAINT fk_delivery_log_article FOREIGN KEY (article_id) REFERENCES news_article(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS keyword_exclusion (
