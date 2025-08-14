@@ -271,8 +271,7 @@ CREATE TABLE IF NOT EXISTS news_article (
   published_at DATETIME NULL,
   fetched_at DATETIME NOT NULL,
   raw_json JSON NULL,
-  INDEX idx_published_at (published_at DESC),
-  CONSTRAINT fk_news_article_company FOREIGN KEY (company_id) REFERENCES news_company(id) ON DELETE SET NULL
+  INDEX idx_published_at (published_at DESC)
 );
 
 CREATE TABLE IF NOT EXISTS delivery_log (
@@ -284,8 +283,7 @@ CREATE TABLE IF NOT EXISTS delivery_log (
   sent_at DATETIME NOT NULL,
   response_body TEXT NULL,
   UNIQUE KEY uniq_article_channel (article_id, channel),
-  INDEX idx_sent_at (sent_at DESC),
-  CONSTRAINT fk_delivery_log_article FOREIGN KEY (article_id) REFERENCES news_article(id) ON DELETE CASCADE
+  INDEX idx_sent_at (sent_at DESC)
 );
 
 CREATE TABLE IF NOT EXISTS keyword_exclusion (
