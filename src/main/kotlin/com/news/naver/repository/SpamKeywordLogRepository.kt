@@ -40,4 +40,12 @@ class SpamKeywordLogRepository(
             .one()
             .awaitSingle()
     }
+
+    suspend fun deleteAll(): Long {
+        val sql = "DELETE FROM spam_keyword_log"
+        return template.databaseClient.sql(sql)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
