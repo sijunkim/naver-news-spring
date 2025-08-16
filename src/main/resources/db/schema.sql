@@ -256,6 +256,7 @@ INSERT INTO news_company (domain_prefix, name) VALUES
 CREATE TABLE IF NOT EXISTS spam_keyword_log (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   keyword VARCHAR(200) NOT NULL,
+  title VARCHAR(500) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_created_at (created_at),
   INDEX idx_keyword (keyword)
