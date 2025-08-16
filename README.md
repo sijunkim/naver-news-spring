@@ -1,5 +1,3 @@
-
-
 # PRD: 네이버 뉴스(속보/단독) 수집 → Slack 전송 (Spring WebFlux + Kotlin Coroutines + R2DBC)
 
 ## 0. TL;DR
@@ -316,6 +314,7 @@ INSERT INTO news_company (domain_prefix, name) VALUES
 CREATE TABLE IF NOT EXISTS spam_keyword_log (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   keyword VARCHAR(200) NOT NULL,
+  title VARCHAR(500) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_created_at (created_at),
   INDEX idx_keyword (keyword)
@@ -398,47 +397,59 @@ CREATE TABLE IF NOT EXISTS runtime_state (
 - 채널별 Webhook URL: `BREAKING_NEWS_WEBHOOK_URL`, `EXCLUSIVE_NEWS_WEBHOOK_URL`, `DEVELOP_WEBHOOK_URL`
 - 전송 페이로드: `{ "text": "[CHANNEL] 제목\n정규화URL" }`
 
+### 8.3 수동 실행 API
+- `POST /manual/news/breaking`: 속보 수집을 즉시 실행합니다.
+- `POST /manual/news/exclusive`: 단독 수집을 즉시 실행합니다.
+- `DELETE /manual/keywords/spam`: 스팸 키워드 로그를 모두 삭제합니다.
+- `DELETE /manual/polls/timestamp`: 마지막 수집 시각을 삭제하여 다음 수집 시 전체 기사를 대상으로 하도록 합니다.
+- `DELETE /manual/runtime-data`: 모든 런타임 데이터를 삭제합니다.
+
 ---
 
-## 9. 설정 & 환경변수 (.env 매핑)
-- 기존 `.env` 재사용. 단, `APP_PORT`는 스프링에서 **`SERVER_PORT`**로 사용 (`server.port`).
-- 주요 키 (예시):
-  - `SERVER_PORT`(=기존 APP_PORT), `R2DBC_URL`, `R2DBC_USERNAME`, `R2DBC_PASSWORD`
-  - `NAVER_OPENAPI_URL`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`
-  - `BREAKING_NEWS_WEBHOOK_URL`, `EXCLUSIVE_NEWS_WEBHOOK_URL`, `DEVELOP_WEBHOOK_URL`
-  - `POLL_INTERVAL_SECONDS`, `DUPLICATED_COUNT`
+## 9. 환경변수
+```
+# .env
 
-`application.yml` 예시:
-```yaml
-server:
-  port: ${SERVER_PORT:8080}
+# 로컬 데이터베이스
+DB_HOST=localhost
+DB_PORT=
+DB_DATABASE=naver_news
+DB_USER=
+DB_PASSWORD=
 
-spring:
-  r2dbc:
-    url: ${R2DBC_URL:r2dbc:pool:mysql://localhost:3306/news}
-    username: ${R2DBC_USERNAME:root}
-    password: ${R2DBC_PASSWORD:root}
+# 서버 포트
+APP_PORT=3579
 
-app:
-  poll:
-    intervalSeconds: ${POLL_INTERVAL_SECONDS:60}
-  duplicate:
-    threshold: ${DUPLICATED_COUNT:5}
+# 뉴스 배치 주기
+POLL_INTERVAL_SECONDS=60
 
-naver:
-  openapi:
-    url: ${NAVER_OPENAPI_URL:https://openapi.naver.com/v1/search/news.json}
-    clientId: ${NAVER_CLIENT_ID:dummy}
-    clientSecret: ${NAVER_CLIENT_SECRET:dummy}
+# 뉴스 중복 체크 카운트
+DUPLICATED_COUNT=5
 
-slack:
-  webhook:
-    breaking: ${BREAKING_NEWS_WEBHOOK_URL}
-    exclusive: ${EXCLUSIVE_NEWS_WEBHOOK_URL}
-    develop: ${DEVELOP_WEBHOOK_URL}
+# 네이버 클라이언트 정보
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+NAVER_OPENAPI_URL=https://openapi.naver.com/v1/search/news.xml?query=
+
+# 네이버 뉴스 검색 옵션
+NAVER_SEARCH_DISPLAY=30
+NAVER_SEARCH_START=1
+NAVER_SEARCH_SORT=date
+
+# 슬랙 웹훅 정보
+# 속보 받을 웹훅 주소
+BREAKING_NEWS_WEBHOOK_URL=
+# 단독 받을 웹훅 주소
+EXCLUSIVE_NEWS_WEBHOOK_URL=
+# 테스트 웹훅 주소
+DEVELOP_WEBHOOK_URL=
 ```
 
----
+- app.* → AppProperties.kt
+- naver.openapi.* → NaverProperties.kt
+- slack.webhook.* → SlackProperties.kt
+
+  ---
 
 ## 10. 관찰성(Observability)
 - **Actuator**: `/actuator/health`, `/actuator/metrics`
@@ -485,3 +496,5 @@ slack:
 ## 16. 용어
 - **채널(Channel)**: BREAKING(속보), EXCLUSIVE(단독), DEV(개발 테스트)
 - **정규화 URL**: 파라미터/프래그먼트 제거하고 소문자화한 URL
+
+```
