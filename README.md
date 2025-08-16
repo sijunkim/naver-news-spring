@@ -480,9 +480,32 @@ DEVELOP_WEBHOOK_URL=
 ---
 
 ## 14. 테스트 전략
-- **외부 API 목킹**: `MockWebServer`로 네이버/슬랙 응답 시뮬레이션
-- **R2DBC 통합 테스트**: Testcontainers(MySQL)로 스키마/쿼리 검증
-- **시나리오 테스트**: 중복/제외/재시도/레이트리밋/장애복구 케이스
+
+프로젝트 안정성 확보를 위한 계층별 테스트 전략. Spring Boot 테스트 도구와 Mockito 적극 활용
+
+### 14.1 컨트롤러 계층 테스트
+- 목표: API 엔드포인트 요청/응답 동작 검증.
+- 활용 기술: @WebFluxTest, WebTestClient, @MockBean
+- 방식:
+  - @WebFluxTest를 활용한 컨트롤러 격리 테스트 환경 구성
+  - @MockBean을 활용한 서비스 계층 Mock 처리 및 컨트롤러 로직 순수성 확보
+  - WebTestClient를 활용한 API 호출 및 응답 상태/본문 검증
+- 구현: ManualControllerTest.kt
+
+### 14.2 서비스 계층 테스트
+- 목표: 서비스 비즈니스 로직 동작에 대한 단위 테스트 검증
+- 활용 기술: Mockito, JUnit 5, kotlinx-coroutines-test
+- 방식:
+  - MockitoExtension을 활용한 Mockito 통합
+  - @Mock 및 @InjectMocks를 활용한 의존성 Mock 객체 주입
+  - runTest 빌더를 활용한 suspend 함수 테스트
+  - verify를 활용한 Mock 객체 함수 호출 여부 검증
+- 구현: ManualServiceTest.kt
+
+### 14.3 통합 테스트 및 향후 계획
+- Application Context 테스트: @SpringBootTest를 활용한 전체 Application Context 로드 검증
+- 외부 API 연동 테스트 (향후): MockWebServer를 활용한 외부 API 연동 시뮬레이션 및 다양한 시나리오 검증
+- DB 통합 테스트 (향후): Testcontainers를 활용한 R2DBC 리포지토리 쿼리 및 데이터 영속성 검증
 
 ---
 
