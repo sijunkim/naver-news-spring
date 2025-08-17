@@ -6,13 +6,15 @@ import com.news.naver.service.NewsProcessingService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 @Component
 class NewsPollingScheduler(
     private val props: AppProperties,
-    private val service: NewsProcessingService
+    private val service: NewsProcessingService,
+    private val environment: Environment
 ) {
     /**
      * 기본 60초 주기. 채널별 병렬 처리.
@@ -20,7 +22,13 @@ class NewsPollingScheduler(
      */
     @Scheduled(fixedDelayString = "\${app.poll.intervalSeconds:60}000")
     fun poll() = runBlocking {
-        listOf(NewsChannel.BREAKING, NewsChannel.EXCLUSIVE).map { ch ->
+        val channelsToPoll = if (environment.activeProfiles.contains("local")) {
+            listOf(NewsChannel.DEV)
+        } else {
+            listOf(NewsChannel.BREAKING, NewsChannel.EXCLUSIVE)
+        }
+
+        channelsToPoll.map { ch ->
             async { service.runOnce(ch) }
         }.awaitAll()
     }
