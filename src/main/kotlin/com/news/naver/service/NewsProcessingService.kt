@@ -4,8 +4,12 @@ import com.news.naver.client.NaverNewsClient
 import com.news.naver.client.SlackClient
 import com.news.naver.common.HashUtils
 import com.news.naver.data.constant.MessageConstants
+import com.news.naver.data.constant.StringConstants
 import com.news.naver.data.dto.Item
+import com.news.naver.data.enum.DeliveryStatus
 import com.news.naver.data.enum.NewsChannel
+import com.news.naver.property.AppProperties
+import com.news.naver.property.NaverProperties
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.NewsCompanyRepository
@@ -16,7 +20,6 @@ import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 @Service
 class NewsProcessingService(
@@ -28,7 +31,9 @@ class NewsProcessingService(
     private val articleRepo: NewsArticleRepository,
     private val deliveryRepo: DeliveryLogRepository,
     private val newsCompanyRepository: NewsCompanyRepository,
-    private val runtimeStateRepo: RuntimeStateRepository
+    private val runtimeStateRepo: RuntimeStateRepository,
+    private val appProperties: AppProperties,
+    private val naverProperties: NaverProperties
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -37,10 +42,16 @@ class NewsProcessingService(
      * 채널별 1회 실행 (스케줄러/수동 트리거에서 호출)
      */
     suspend fun runOnce(channel: NewsChannel) {
-        val lastPollTimeStr = runtimeStateRepo.getState("lastPollTime:${channel.name}")
+        val lastPollTimeKey = "${StringConstants.LAST_POLL_TIME_PREFIX}${channel.name}"
+        val lastPollTimeStr = runtimeStateRepo.getState(lastPollTimeKey)
         val lastPollTime = lastPollTimeStr?.let { LocalDateTime.parse(it) }
 
-        val resp = naverNewsClient.search(channel.query, display = 30, start = 1, sort = "date")
+        val resp = naverNewsClient.search(
+            query = channel.query,
+            display = naverProperties.search.display,
+            start = 1,
+            sort = "date"
+        )
 
         // 제목에 키워드 포함된 기사만 선별
         val fetchedItems = resp.items?.filter { it.title?.contains(channel.query) ?: false }
@@ -72,7 +83,7 @@ class NewsProcessingService(
         // 마지막 조회 시간 업데이트
         val latestPubDate = newItems.maxOfOrNull { refiner.pubDateToKst(it.pubDate) }
         if (latestPubDate != null) {
-            runtimeStateRepo.setState("lastPollTime:${channel.name}", latestPubDate.toString())
+            runtimeStateRepo.setState(lastPollTimeKey, latestPubDate.toString())
         }
     }
 
@@ -92,7 +103,7 @@ class NewsProcessingService(
         if (filter.isExcluded(title, company?.name, channel)) return false // Return false if excluded
 
         // 스팸(중복 키워드) 검사
-        val isSpam = spam.isSpamByTitleTokens(title, threshold = 5 /* app.duplicate.threshold 사용 가능 */)
+        val isSpam = spam.isSpamByTitleTokens(title, threshold = appProperties.duplicate.threshold)
         if (isSpam) return false // Return false if spam
 
         // 기사 저장
@@ -123,7 +134,7 @@ class NewsProcessingService(
         deliveryRepo.insertDeliveryLog(
             articleId = saved.id!!,
             channel = channel.name,
-            status = if (sendResult.success) "SUCCESS" else "FAILED",
+            status = if (sendResult.success) DeliveryStatus.SUCCESS.name else DeliveryStatus.FAILED.name,
             httpStatus = sendResult.httpStatus,
             sentAt = LocalDateTime.now(),
             responseBody = sendResult.body
@@ -135,4 +146,5 @@ class NewsProcessingService(
         return sendResult.success // Return true if sent successfully
     }
 }
+
 ""

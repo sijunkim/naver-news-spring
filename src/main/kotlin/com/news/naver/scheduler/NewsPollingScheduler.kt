@@ -1,5 +1,6 @@
 package com.news.naver.scheduler
 
+import com.news.naver.data.constant.StringConstants
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.property.AppProperties
 import com.news.naver.service.NewsProcessingService
@@ -22,7 +23,7 @@ class NewsPollingScheduler(
      */
     @Scheduled(fixedDelayString = "\${app.poll.intervalSeconds:60}000")
     fun poll() = runBlocking {
-        val channelsToPoll = if (environment.activeProfiles.contains("local")) {
+        val channelsToPoll = if (environment.activeProfiles.contains(StringConstants.PROFILE_LOCAL)) {
             listOf(NewsChannel.DEV)
         } else {
             listOf(NewsChannel.BREAKING, NewsChannel.EXCLUSIVE)
