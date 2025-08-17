@@ -43,7 +43,7 @@ class NewsRefinerService {
     /**
      * Slack 메시지 텍스트 구성
      */
-    fun slackText(prefix: String, title: String, normalizedUrl: String, company: String?): String {
+    fun slackText(prefix: String, title: String, normalizedUrl: String?, company: String?): String {
         val companySuffix = company?.let { " ($it)" } ?: ""
         return "$prefix $title$companySuffix\n$normalizedUrl"
     }

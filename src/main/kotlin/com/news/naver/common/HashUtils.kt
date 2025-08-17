@@ -5,11 +5,12 @@ import java.security.MessageDigest
 
 object HashUtils {
 
-    fun normalizeUrl(raw: String): String {
+    fun normalizeUrl(raw: String?): String? {
         // 1) 공백 정리 + 스킴 보정
-        val trimmed = raw.trim()
-        val withScheme = if (trimmed.startsWith("http://", ignoreCase = true) ||
-            trimmed.startsWith("https://", ignoreCase = true)) {
+        val trimmed = raw?.trim()
+        val withScheme = if (trimmed?.startsWith("http://", ignoreCase = true) == true ||
+            trimmed?.startsWith("https://", ignoreCase = true) == true
+        ) {
             trimmed
         } else {
             "https://$trimmed"
@@ -44,14 +45,14 @@ object HashUtils {
             normalized
         } catch (_: Exception) {
             // 파싱 실패 시: 최소한의 정규화 (소문자화 + 트림)
-            trimmed.lowercase()
+            trimmed?.lowercase()
         }
     }
 
     // 이미 있으실 수도 있지만, 참고용으로 함께 둡니다.
-    fun sha256(s: String): String {
+    fun sha256(s: String?): String {
         val md = MessageDigest.getInstance("SHA-256")
-        val bytes = md.digest(s.toByteArray())
+        val bytes = md.digest(s?.toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }
     }
 }

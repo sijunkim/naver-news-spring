@@ -12,14 +12,13 @@ class SpamKeywordLogRepository(
     private val template: R2dbcEntityTemplate,
     private val converter: MappingR2dbcConverter
 ) {
-    suspend fun insertSpamKeywordLog(keyword: String, title: String, createdAt: LocalDateTime): Long {
+    suspend fun insertSpamKeywordLog(keyword: String, createdAt: LocalDateTime): Long {
         val sql = """
-            INSERT INTO spam_keyword_log (keyword, title, created_at)
-            VALUES (:keyword, :title, :createdAt)
+            INSERT INTO spam_keyword_log (keyword, created_at)
+            VALUES (:keyword, :createdAt)
         """.trimIndent()
         return template.databaseClient.sql(sql)
             .bind("keyword", keyword)
-            .bind("title", title)
             .bind("createdAt", createdAt)
             .fetch()
             .rowsUpdated()

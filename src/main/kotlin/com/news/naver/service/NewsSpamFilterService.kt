@@ -36,8 +36,8 @@ class NewsSpamFilterService(
      */
     suspend fun recordTitleTokens(title: String) {
         val now = LocalDateTime.now()
-        tokenize(title).forEach { t ->
-            spamRepo.insertSpamKeywordLog(t, title, now)
+        tokenize(title).forEach { keywords ->
+            spamRepo.insertSpamKeywordLog(keywords,now)
         }
     }
 
