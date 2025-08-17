@@ -429,7 +429,7 @@ DUPLICATED_COUNT=5
 # 네이버 클라이언트 정보
 NAVER_CLIENT_ID=
 NAVER_CLIENT_SECRET=
-NAVER_OPENAPI_URL=https://openapi.naver.com/v1/search/news.xml?query=
+NAVER_OPENAPI_URL=https://openapi.naver.com/v1/search/news.json
 
 # 네이버 뉴스 검색 옵션
 NAVER_SEARCH_DISPLAY=30
