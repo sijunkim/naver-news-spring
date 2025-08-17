@@ -8,6 +8,7 @@ import com.news.naver.data.constant.StringConstants
 import com.news.naver.data.dto.Item
 import com.news.naver.data.enum.DeliveryStatus
 import com.news.naver.data.enum.NewsChannel
+import com.news.naver.entity.NewsArticleEntity
 import com.news.naver.property.AppProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.repository.DeliveryLogRepository
@@ -42,108 +43,137 @@ class NewsProcessingService(
      * 채널별 1회 실행 (스케줄러/수동 트리거에서 호출)
      */
     suspend fun runOnce(channel: NewsChannel) {
+        // 1. 마지막 조회 시간 가져오기
         val lastPollTimeKey = "${StringConstants.LAST_POLL_TIME_PREFIX}${channel.name}"
-        val lastPollTimeStr = runtimeStateRepo.getState(lastPollTimeKey)
-        val lastPollTime = lastPollTimeStr?.let { LocalDateTime.parse(it) }
+        val lastPollTime = runtimeStateRepo.getState(lastPollTimeKey)?.let { LocalDateTime.parse(it) }
 
+        // 2. 네이버 API를 통해 뉴스 아이템 가져오기
+        val fetchedItems = fetchItemsFromNaver(channel)
+        if (fetchedItems.isEmpty()) {
+            logger.info("No items found for channel: ${channel.name}")
+            return
+        }
+
+        // 3. 마지막 조회 시간 이후의 새 기사 필터링
+        val newItems = filterItemsByTime(fetchedItems, lastPollTime)
+        if (newItems.isEmpty()) {
+            logger.info("No new items found for channel: ${channel.name} since $lastPollTime")
+            return
+        }
+
+        // 4. 저장할 기사 후보 목록 생성 (메모리에서 사전 필터링)
+        val candidateArticles = prefilterCandidates(newItems, channel)
+
+        // 5. 중복 기사 일괄 확인 및 최종 저장 목록 필터링
+        val trulyNewArticles = filterOutExistingArticles(candidateArticles)
+        if (trulyNewArticles.isEmpty()) {
+            logger.info("No truly new articles to save for channel: ${channel.name}")
+            updateLastPollTime(lastPollTimeKey, newItems) // 중복만 있었어도 시간은 업데이트
+            return
+        }
+
+        // 6. 신규 기사 일괄 저장
+        articleRepo.bulkInsert(trulyNewArticles)
+
+        // 7. 저장된 기사 정보 다시 조회 (ID 확보 목적)
+        val savedArticles = articleRepo.findExistingHashes(trulyNewArticles.map { it.naverLinkHash })
+            .mapNotNull { articleRepo.selectNewsArticleByHash(it) }
+
+        // 8. 후속 처리 (슬랙 전송 등)
+        val sentCount = postProcessSavedArticles(savedArticles, channel)
+        logger.info("[${channel.name}] $sentCount news items sent to Slack.")
+
+        // 9. 마지막 조회 시간 업데이트
+        updateLastPollTime(lastPollTimeKey, newItems)
+    }
+
+    private suspend fun fetchItemsFromNaver(channel: NewsChannel): List<Item> {
         val resp = naverNewsClient.search(
             query = channel.query,
             display = naverProperties.search.display,
             start = 1,
             sort = "date"
         )
+        return resp.items?.filter { it.title?.contains(channel.query) ?: false } ?: emptyList()
+    }
 
-        // 제목에 키워드 포함된 기사만 선별
-        val fetchedItems = resp.items?.filter { it.title?.contains(channel.query) ?: false }
+    private fun filterItemsByTime(items: List<Item>, lastPollTime: LocalDateTime?): List<Item> {
+        if (lastPollTime == null) return items
+        return items.filter { refiner.pubDateToKst(it.pubDate).isAfter(lastPollTime) }
+    }
 
-        if (fetchedItems.isNullOrEmpty()) {
-            logger.info("No items found for channel: ${channel.name}")
-            return
-        }
+    private suspend fun prefilterCandidates(items: List<Item>, channel: NewsChannel): List<NewsArticleEntity> {
+        return coroutineScope {
+            items.map {
+                async {
+                    val title = refiner.refineTitle(it.title)
+                    val companyDomain = refiner.extractCompany(it.link, it.originalLink)
+                    val company = companyDomain?.let { newsCompanyRepository.selectNewsCompanyByDomainPrefix(it) }
 
-        // 마지막 조회 시간 이후 발행된 뉴스만 필터링
-        val newItems = if (lastPollTime == null) {
-            fetchedItems
-        } else {
-            fetchedItems.filter { refiner.pubDateToKst(it.pubDate).isAfter(lastPollTime) }
-        }
+                    val isExcluded = filter.isExcluded(title, company?.name, channel)
+                    val isSpam = spam.isSpamByTitleTokens(title, threshold = appProperties.duplicate.threshold)
 
-        if (newItems.isEmpty()) {
-            logger.info("No new items found for channel: ${channel.name} since $lastPollTime")
-            return
-        }
-
-        val sentCount = coroutineScope {
-            newItems.map { async { processItem(channel, it) } }
-                .awaitAll()
-                .count { it } // Count successful sends
-        }
-        logger.info("[${channel.name}] $sentCount news items sent to Slack.")
-
-        // 마지막 조회 시간 업데이트
-        val latestPubDate = newItems.maxOfOrNull { refiner.pubDateToKst(it.pubDate) }
-        if (latestPubDate != null) {
-            runtimeStateRepo.setState(lastPollTimeKey, latestPubDate.toString())
+                    if (isExcluded || isSpam) {
+                        null
+                    } else {
+                        NewsArticleEntity(
+                            naverLinkHash = HashUtils.sha256(HashUtils.normalizeUrl(it.link)),
+                            title = title,
+                            summary = refiner.refineDescription(it.description),
+                            companyId = company?.id,
+                            publishedAt = refiner.pubDateToKst(it.pubDate),
+                            fetchedAt = LocalDateTime.now(),
+                            rawJson = null
+                        )
+                    }
+                }
+            }.awaitAll().filterNotNull()
         }
     }
 
-    private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
-        val title = refiner.refineTitle(item.title)
-        val description = refiner.refineDescription(item.description)
-        val companyDomain = refiner.extractCompany(item.link, item.originalLink)
-        val company = companyDomain?.let { newsCompanyRepository.selectNewsCompanyByDomainPrefix(it) }
+    private suspend fun filterOutExistingArticles(articles: List<NewsArticleEntity>): List<NewsArticleEntity> {
+        if (articles.isEmpty()) return emptyList()
+        val existingHashes = articleRepo.findExistingHashes(articles.map { it.naverLinkHash }).toSet()
+        return articles.filter { it.naverLinkHash !in existingHashes }
+    }
 
-        val normalizedUrl = HashUtils.normalizeUrl(item.link)
-        val hash = HashUtils.sha256(normalizedUrl)
+    private suspend fun postProcessSavedArticles(articles: List<NewsArticleEntity>, channel: NewsChannel): Int {
+        return coroutineScope {
+            articles.map {
+                async {
+                    // Slack 전송
+                    val prefix = when (channel) {
+                        NewsChannel.BREAKING -> MessageConstants.SLACK_PREFIX_BREAKING
+                        NewsChannel.EXCLUSIVE -> MessageConstants.SLACK_PREFIX_EXCLUSIVE
+                        NewsChannel.DEV -> MessageConstants.SLACK_PREFIX_DEV
+                    }
+                    val text = refiner.slackText(prefix, it.title, HashUtils.normalizeUrl(it.naverLinkHash), null) // company name is not available here
+                    val sendResult = slack.send(channel, text)
 
-        // 중복 기사 방지
-        if (articleRepo.countNewsArticleByHash(hash) > 0L) return false // Return false if duplicate
+                    // 전송 로그
+                    deliveryRepo.insertDeliveryLog(
+                        articleId = it.id!!,
+                        channel = channel.name,
+                        status = if (sendResult.success) DeliveryStatus.SUCCESS.name else DeliveryStatus.FAILED.name,
+                        httpStatus = sendResult.httpStatus,
+                        sentAt = LocalDateTime.now(),
+                        responseBody = sendResult.body
+                    )
 
-        // 제외 룰 검사
-        if (filter.isExcluded(title, company?.name, channel)) return false // Return false if excluded
+                    // 스팸 키워드 기록
+                    spam.recordTitleTokens(it.title)
 
-        // 스팸(중복 키워드) 검사
-        val isSpam = spam.isSpamByTitleTokens(title, threshold = appProperties.duplicate.threshold)
-        if (isSpam) return false // Return false if spam
-
-        // 기사 저장
-        val savedRows = articleRepo.insertNewsArticle(
-            naverLinkHash = hash,
-            title = title,
-            summary = description,
-            companyId = company?.id,
-            publishedAt = refiner.pubDateToKst(item.pubDate),
-            fetchedAt = LocalDateTime.now(),
-            rawJson = null
-        )
-        if (savedRows <= 0) return false // Return false if not saved
-
-        // id 조회(RETURNING 미사용이므로 재조회)
-        val saved = articleRepo.selectNewsArticleByHash(hash) ?: return false // Return false if not found after save
-
-        // Slack 전송
-        val prefix = when (channel) {
-            NewsChannel.BREAKING -> MessageConstants.SLACK_PREFIX_BREAKING
-            NewsChannel.EXCLUSIVE -> MessageConstants.SLACK_PREFIX_EXCLUSIVE
-            NewsChannel.DEV -> MessageConstants.SLACK_PREFIX_DEV
+                    sendResult.success
+                }
+            }.awaitAll().count { it }
         }
-        val text = refiner.slackText(prefix, title, normalizedUrl, company?.name)
-        val sendResult = slack.send(channel, text)
+    }
 
-        // 전송 로그
-        deliveryRepo.insertDeliveryLog(
-            articleId = saved.id!!,
-            channel = channel.name,
-            status = if (sendResult.success) DeliveryStatus.SUCCESS.name else DeliveryStatus.FAILED.name,
-            httpStatus = sendResult.httpStatus,
-            sentAt = LocalDateTime.now(),
-            responseBody = sendResult.body
-        )
-
-        // 스팸 키워드 기록(윈도우 집계를 위한 이벤트)
-        spam.recordTitleTokens(title)
-
-        return sendResult.success // Return true if sent successfully
+    private suspend fun updateLastPollTime(key: String, items: List<Item>) {
+        val latestPubDate = items.maxOfOrNull { refiner.pubDateToKst(it.pubDate) }
+        if (latestPubDate != null) {
+            runtimeStateRepo.setState(key, latestPubDate.toString())
+        }
     }
 }
 
