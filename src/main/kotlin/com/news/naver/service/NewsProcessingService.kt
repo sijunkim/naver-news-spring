@@ -6,12 +6,9 @@ import com.news.naver.common.HashUtils
 import com.news.naver.data.constant.MessageConstants
 import com.news.naver.data.constant.StringConstants
 import com.news.naver.data.dto.Item
-import com.news.naver.data.enum.DeliveryStatus
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.entity.NewsArticleEntity
 import com.news.naver.property.NaverProperties
-import com.news.naver.repository.DeliveryLogRepository
-import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.NewsCompanyRepository
 import com.news.naver.repository.RuntimeStateRepository
 import kotlinx.coroutines.async
@@ -28,8 +25,7 @@ class NewsProcessingService(
     private val refiner: NewsRefinerService,
     private val filter: NewsFilterService,
     private val spam: NewsSpamFilterService,
-    private val articleRepo: NewsArticleRepository,
-    private val deliveryRepo: DeliveryLogRepository,
+    private val persistence: ArticlePersistenceService,
     private val newsCompanyRepository: NewsCompanyRepository,
     private val runtimeStateRepo: RuntimeStateRepository,
     private val naverProperties: NaverProperties
@@ -71,11 +67,10 @@ class NewsProcessingService(
         }
 
         // 6. 신규 기사 일괄 저장
-        articleRepo.insertBulkArticles(trulyNewArticles)
+        persistence.insertBulkArticles(trulyNewArticles)
 
         // 7. 저장된 기사 정보 다시 조회 (ID 확보 목적)
-        val savedArticles = articleRepo.selectExistingHashes(trulyNewArticles.map { it.naverLinkHash })
-            .mapNotNull { articleRepo.selectNewsArticleByHash(it) }
+        val savedArticles = persistence.selectArticlesByHashes(trulyNewArticles.map { it.naverLinkHash })
 
         // 8. 후속 처리 (슬랙 전송 등)
         val sentCount = postProcessSavedArticles(savedArticles, channel)
@@ -128,7 +123,7 @@ class NewsProcessingService(
 
     private suspend fun filterOutExistingArticles(articles: List<NewsArticleEntity>): List<NewsArticleEntity> {
         if (articles.isEmpty()) return emptyList()
-        val existingHashes = articleRepo.selectExistingHashes(articles.map { it.naverLinkHash }).toSet()
+        val existingHashes = persistence.selectArticlesByHashes(articles.map { it.naverLinkHash }).map { it.naverLinkHash }.toSet()
         return articles.filter { it.naverLinkHash !in existingHashes }
     }
 
@@ -146,13 +141,10 @@ class NewsProcessingService(
                     val sendResult = slack.send(channel, text)
 
                     // 전송 로그
-                    deliveryRepo.insertDeliveryLog(
+                    persistence.insertDeliveryLog(
                         articleId = it.id!!,
-                        channel = channel.name,
-                        status = if (sendResult.success) DeliveryStatus.SUCCESS.name else DeliveryStatus.FAILED.name,
-                        httpStatus = sendResult.httpStatus,
-                        sentAt = LocalDateTime.now(),
-                        responseBody = sendResult.body
+                        channelName = channel.name,
+                        sendResult = sendResult
                     )
 
                     // 스팸 키워드 기록
