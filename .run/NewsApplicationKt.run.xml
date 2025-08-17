@@ -5,6 +5,7 @@
     <option name="MAIN_CLASS_NAME" value="com.news.naver.NewsApplicationKt" />
     <module name="naver-news-spring.main" />
     <shortenClasspath name="MANIFEST" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
