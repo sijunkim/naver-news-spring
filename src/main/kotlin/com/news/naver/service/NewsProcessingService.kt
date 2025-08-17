@@ -34,10 +34,12 @@ class NewsProcessingService(
         val resp = naverNewsClient.search(channel.query, display = 30, start = 1, sort = "date")
 
         // NestJS 동작과 동일하게: 제목에 키워드 포함된 기사만 선별
-        val items = resp.channel.items.filter { it.title.contains(channel.query) }
+        val items = resp.items?.filter { it.title?.contains(channel.query) ?: false }
 
         coroutineScope {
-            items.map { async { processItem(channel, it) } }.awaitAll()
+            items?.map { async { processItem(channel, it) } }?.awaitAll() ?: run {
+                println("No items found for channel: ${channel.name}")
+            }
         }
     }
 
