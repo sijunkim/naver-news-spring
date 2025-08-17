@@ -22,9 +22,9 @@ naver:
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}
   search:
-    display: 30
-    start: 1
-    sort: date
+    display: ${NAVER_SEARCH_DISPLAY:30}
+    start: ${NAVER_SEARCH_START:1}
+    sort: ${NAVER_SEARCH_SORT:date}
 
 slack:
   webhook:
