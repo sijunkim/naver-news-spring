@@ -43,7 +43,7 @@ class NewsProcessingService(
     suspend fun runOnce(channel: NewsChannel) {
         // 1. 마지막 조회 시간 가져오기
         val lastPollTimeKey = "${StringConstants.LAST_POLL_TIME_PREFIX}${channel.name}"
-        val lastPollTime = runtimeStateRepo.getState(lastPollTimeKey)?.let { LocalDateTime.parse(it) }
+        val lastPollTime = runtimeStateRepo.selectState(lastPollTimeKey)?.let { LocalDateTime.parse(it) }
 
         // 2. 네이버 API를 통해 뉴스 아이템 가져오기
         val fetchedItems = fetchItemsFromNaver(channel)
@@ -167,7 +167,7 @@ class NewsProcessingService(
     private suspend fun updateLastPollTime(key: String, items: List<Item>) {
         val latestPubDate = items.maxOfOrNull { refiner.pubDateToKst(it.pubDate) }
         if (latestPubDate != null) {
-            runtimeStateRepo.setState(key, latestPubDate.toString())
+            runtimeStateRepo.updateState(key, latestPubDate.toString())
         }
     }
 }

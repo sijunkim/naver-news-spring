@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository
 class RuntimeStateRepository(
     private val template: R2dbcEntityTemplate
 ) {
-    suspend fun getState(key: String): String? {
+    suspend fun selectState(key: String): String? {
         val sql = "SELECT `value` FROM runtime_state WHERE `key` = :key"
         return template.databaseClient.sql(sql)
             .bind("key", key)
@@ -19,7 +19,7 @@ class RuntimeStateRepository(
             .awaitSingleOrNull()
     }
 
-    suspend fun setState(key: String, value: String) {
+    suspend fun updateState(key: String, value: String) {
         val sql = """
             INSERT INTO runtime_state (`key`, `value`)
             VALUES (:key, :value)
