@@ -1,4 +1,4 @@
-package com.news.naver.service
+"""package com.news.naver.service
 
 import com.news.naver.client.NaverNewsClient
 import com.news.naver.client.SlackClient
@@ -9,12 +9,14 @@ import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.NewsCompanyRepository
+import com.news.naver.repository.RuntimeStateRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class NewsProcessingService(
@@ -25,7 +27,8 @@ class NewsProcessingService(
     private val spam: NewsSpamFilterService,
     private val articleRepo: NewsArticleRepository,
     private val deliveryRepo: DeliveryLogRepository,
-    private val newsCompanyRepository: NewsCompanyRepository
+    private val newsCompanyRepository: NewsCompanyRepository,
+    private val runtimeStateRepo: RuntimeStateRepository
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -34,22 +37,43 @@ class NewsProcessingService(
      * 채널별 1회 실행 (스케줄러/수동 트리거에서 호출)
      */
     suspend fun runOnce(channel: NewsChannel) {
+        val lastPollTimeStr = runtimeStateRepo.getState("lastPollTime:${channel.name}")
+        val lastPollTime = lastPollTimeStr?.let { LocalDateTime.parse(it) }
+
         val resp = naverNewsClient.search(channel.query, display = 30, start = 1, sort = "date")
 
-        // NestJS 동작과 동일하게: 제목에 키워드 포함된 기사만 선별
-        val items = resp.items?.filter { it.title?.contains(channel.query) ?: false }
+        // 제목에 키워드 포함된 기사만 선별
+        val fetchedItems = resp.items?.filter { it.title?.contains(channel.query) ?: false }
 
-        if (items.isNullOrEmpty()) {
-            println("No items found for channel: ${channel.name}")
+        if (fetchedItems.isNullOrEmpty()) {
+            logger.info("No items found for channel: ${channel.name}")
+            return
+        }
+
+        // 마지막 조회 시간 이후 발행된 뉴스만 필터링
+        val newItems = if (lastPollTime == null) {
+            fetchedItems
+        } else {
+            fetchedItems.filter { refiner.pubDateToKst(it.pubDate).isAfter(lastPollTime) }
+        }
+
+        if (newItems.isEmpty()) {
+            logger.info("No new items found for channel: ${channel.name} since $lastPollTime")
             return
         }
 
         val sentCount = coroutineScope {
-            items.map { async { processItem(channel, it) } }
+            newItems.map { async { processItem(channel, it) } }
                 .awaitAll()
                 .count { it } // Count successful sends
         }
         logger.info("[${channel.name}] $sentCount news items sent to Slack.")
+
+        // 마지막 조회 시간 업데이트
+        val latestPubDate = newItems.maxOfOrNull { refiner.pubDateToKst(it.pubDate) }
+        if (latestPubDate != null) {
+            runtimeStateRepo.setState("lastPollTime:${channel.name}", latestPubDate.toString())
+        }
     }
 
     private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
@@ -77,7 +101,7 @@ class NewsProcessingService(
             title = title,
             summary = description,
             companyId = company?.id,
-            publishedAt = LocalDateTime.now(), // 필요 시 refiner.pubDateToKst(item.pubDate) 파싱하여 사용
+            publishedAt = refiner.pubDateToKst(item.pubDate),
             fetchedAt = LocalDateTime.now(),
             rawJson = null
         )
@@ -105,6 +129,10 @@ class NewsProcessingService(
             responseBody = sendResult.body
         )
 
+        // 스팸 키워드 기록(윈도우 집계를 위한 이벤트)
+        spam.recordTitleTokens(title)
+
         return sendResult.success // Return true if sent successfully
     }
 }
+""
