@@ -67,7 +67,7 @@ class NewsArticleRepository(
             .awaitSingle()
     }
 
-    suspend fun findExistingHashes(hashes: Collection<String>): List<String> {
+    suspend fun selectExistingHashes(hashes: Collection<String>): List<String> {
         if (hashes.isEmpty()) return emptyList()
         val sql = "SELECT naver_link_hash FROM news_article WHERE naver_link_hash IN (:hashes)"
         return template.databaseClient.sql(sql)
@@ -78,7 +78,7 @@ class NewsArticleRepository(
             .awaitSingle()
     }
 
-    suspend fun bulkInsert(articles: List<NewsArticleEntity>): Long {
+    suspend fun insertBulkArticles(articles: List<NewsArticleEntity>): Long {
         if (articles.isEmpty()) return 0L
 
         val sql = """

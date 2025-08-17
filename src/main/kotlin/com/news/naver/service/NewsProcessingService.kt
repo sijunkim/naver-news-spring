@@ -71,10 +71,10 @@ class NewsProcessingService(
         }
 
         // 6. 신규 기사 일괄 저장
-        articleRepo.bulkInsert(trulyNewArticles)
+        articleRepo.insertBulkArticles(trulyNewArticles)
 
         // 7. 저장된 기사 정보 다시 조회 (ID 확보 목적)
-        val savedArticles = articleRepo.findExistingHashes(trulyNewArticles.map { it.naverLinkHash })
+        val savedArticles = articleRepo.selectExistingHashes(trulyNewArticles.map { it.naverLinkHash })
             .mapNotNull { articleRepo.selectNewsArticleByHash(it) }
 
         // 8. 후속 처리 (슬랙 전송 등)
@@ -128,7 +128,7 @@ class NewsProcessingService(
 
     private suspend fun filterOutExistingArticles(articles: List<NewsArticleEntity>): List<NewsArticleEntity> {
         if (articles.isEmpty()) return emptyList()
-        val existingHashes = articleRepo.findExistingHashes(articles.map { it.naverLinkHash }).toSet()
+        val existingHashes = articleRepo.selectExistingHashes(articles.map { it.naverLinkHash }).toSet()
         return articles.filter { it.naverLinkHash !in existingHashes }
     }
 
