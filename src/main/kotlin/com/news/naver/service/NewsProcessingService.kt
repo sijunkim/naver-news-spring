@@ -9,7 +9,6 @@ import com.news.naver.data.dto.Item
 import com.news.naver.data.enum.DeliveryStatus
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.entity.NewsArticleEntity
-import com.news.naver.property.AppProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
@@ -33,7 +32,6 @@ class NewsProcessingService(
     private val deliveryRepo: DeliveryLogRepository,
     private val newsCompanyRepository: NewsCompanyRepository,
     private val runtimeStateRepo: RuntimeStateRepository,
-    private val appProperties: AppProperties,
     private val naverProperties: NaverProperties
 ) {
 
@@ -110,10 +108,7 @@ class NewsProcessingService(
                     val companyDomain = refiner.extractCompany(it.link, it.originalLink)
                     val company = companyDomain?.let { newsCompanyRepository.selectNewsCompanyByDomainPrefix(it) }
 
-                    val isExcluded = filter.isExcluded(title, company?.name, channel)
-                    val isSpam = spam.isSpamByTitleTokens(title, threshold = appProperties.duplicate.threshold)
-
-                    if (isExcluded || isSpam) {
+                    if (!filter.shouldProcess(title, company?.name, channel)) {
                         null
                     } else {
                         NewsArticleEntity(
