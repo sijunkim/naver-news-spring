@@ -17,6 +17,6 @@ data class SpamKeywordLogEntity(
     @Id
     val id: Long? = null,
     val keyword: String,
-    val title: String,
+    var count: Int = 1,
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
