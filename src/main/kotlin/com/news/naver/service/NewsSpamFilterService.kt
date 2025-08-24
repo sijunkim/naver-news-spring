@@ -1,12 +1,14 @@
 package com.news.naver.service
 
+import com.news.naver.property.AppProperties
 import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
 class NewsSpamFilterService(
-    private val spamRepo: SpamKeywordLogRepository
+    private val spamRepo: SpamKeywordLogRepository,
+    private val appProperties: AppProperties
 ) {
     /**
      * 제목을 공백 단위 토큰으로 분해하여 최근 windowMinutes 내 등장 빈도를 합산.
@@ -15,7 +17,6 @@ class NewsSpamFilterService(
      */
     suspend fun isSpamByTitleTokens(
         title: String,
-        threshold: Int,
         windowMinutes: Long = 120
     ): Boolean {
         val now = LocalDateTime.now()
@@ -26,7 +27,7 @@ class NewsSpamFilterService(
         for (t in tokens) {
             val c = spamRepo.countSpamKeywordLogByKeywordSince(t, since)
             count += c.toInt()
-            if (count > threshold) return true
+            if (count > appProperties.duplicate.threshold) return true
         }
         return false
     }

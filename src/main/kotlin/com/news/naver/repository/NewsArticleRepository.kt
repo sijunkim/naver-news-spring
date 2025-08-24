@@ -1,13 +1,11 @@
 package com.news.naver.repository
 
 import com.news.naver.entity.NewsArticleEntity
-import kotlinx.coroutines.flow.collectList
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.r2dbc.convert.MappingR2dbcConverter
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.bind
-import org.springframework.r2dbc.core.flow
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
@@ -73,7 +71,7 @@ class NewsArticleRepository(
         return template.databaseClient.sql(sql)
             .bind("hashes", hashes)
             .map { row, _ -> row.get("naver_link_hash", String::class.java)!! }
-            .flow()
+            .all()
             .collectList()
             .awaitSingle()
     }
@@ -98,7 +96,6 @@ class NewsArticleRepository(
                 .bind(4, article.publishedAt)
                 .bind(5, article.fetchedAt)
                 .bind(6, article.rawJson)
-                .add()
         }
         return statement.fetch().rowsUpdated().awaitSingle()
     }
