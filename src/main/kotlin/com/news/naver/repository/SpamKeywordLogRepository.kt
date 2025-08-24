@@ -30,42 +30,18 @@ class SpamKeywordLogRepository(
             .awaitSingleOrNull()
     }
 
-    suspend fun save(entity: SpamKeywordLogEntity) {
-        if (entity.id == null) {
-            insert(entity)
-        } else {
-            update(entity)
-        }
-    }
-
-    private suspend fun insert(entity: SpamKeywordLogEntity) {
+    suspend fun upsert(keyword: String) {
         val sql = """
             INSERT INTO spam_keyword_log (keyword, count, created_at)
-            VALUES (:keyword, :count, :createdAt)
+            VALUES (:keyword, 1, NOW())
+            ON DUPLICATE KEY UPDATE count = count + 1
         """.trimIndent()
 
         template.databaseClient.sql(sql)
-            .bind("keyword", entity.keyword)
-            .bind("count", entity.count)
-            .bind("createdAt", entity.createdAt)
+            .bind("keyword", keyword)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
-    }
-
-    private suspend fun update(entity: SpamKeywordLogEntity): SpamKeywordLogEntity {
-        val sql = """
-            UPDATE spam_keyword_log
-            SET count = :count
-            WHERE id = :id
-        """.trimIndent()
-        template.databaseClient.sql(sql)
-            .bind("count", entity.count)
-            .bind("id", entity.id!!)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        return entity
     }
 
     suspend fun deleteAll(): Long {

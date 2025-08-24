@@ -35,13 +35,7 @@ class NewsSpamFilterService(
      */
     suspend fun recordTitleTokens(title: String) {
         tokenize(title).forEach { keyword ->
-            val existingLog = spamRepo.findByKeyword(keyword)
-            if (existingLog != null) {
-                existingLog.count++
-                spamRepo.save(existingLog)
-            } else {
-                spamRepo.save(SpamKeywordLogEntity(keyword = keyword))
-            }
+            spamRepo.upsert(keyword)
         }
     }
 
