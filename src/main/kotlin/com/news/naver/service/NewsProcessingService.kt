@@ -8,7 +8,6 @@ import com.news.naver.data.dto.Item
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
-import com.news.naver.repository.NewsCompanyRepository
 import com.news.naver.repository.RuntimeStateRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -27,7 +26,7 @@ class NewsProcessingService(
     private val spam: NewsSpamFilterService,
     private val articleRepo: NewsArticleRepository,
     private val deliveryRepo: DeliveryLogRepository,
-    private val newsCompanyRepository: NewsCompanyRepository,
+    private val newsCompanyService: NewsCompanyService,
     private val runtimeStateRepository: RuntimeStateRepository
 ) {
 
@@ -89,8 +88,8 @@ class NewsProcessingService(
     private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
         val title = refiner.refineTitle(item.title)
         val description = refiner.refineDescription(item.description)
-        val companyDomain = refiner.extractCompany(item.link, item.originalLink)
-        val company = companyDomain?.let { newsCompanyRepository.selectNewsCompanyByDomainPrefix(it) }
+        val companyDomain = refiner.extractCompany(item.link)
+        val company = companyDomain?.let { newsCompanyService.findOrCreateCompany(it) }
 
         val normalizedUrl = HashUtils.normalizeUrl(item.link)
         val hash = HashUtils.sha256(normalizedUrl)

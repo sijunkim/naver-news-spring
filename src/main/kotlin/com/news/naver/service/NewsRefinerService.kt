@@ -34,10 +34,10 @@ class NewsRefinerService {
     }
 
     /**
-     * originallink(우선) → 없으면 link 로부터 도메인(언론사 후보) 추출
+     * originallink 에서 도메인(언론사 후보) 추출
      */
-    fun extractCompany(link: String?, originallink: String?): String? {
-        val target = originallink?.ifBlank { null } ?: link ?: return null
+    fun extractCompany(originallink: String?): String? {
+        val target = originallink ?: return null
         return try {
             val host = URI(target).host ?: return null
             host.lowercase()

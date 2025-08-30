@@ -2,31 +2,35 @@ package com.news.naver.repository
 
 import com.news.naver.entity.NewsCompanyEntity
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.springframework.data.r2dbc.convert.MappingR2dbcConverter
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.reactive.TransactionalOperator
+import reactor.core.publisher.Mono
 
 @Repository
 class NewsCompanyRepository(
     private val template: R2dbcEntityTemplate,
-    private val converter: MappingR2dbcConverter
+    private val operator: TransactionalOperator
 ) {
-    suspend fun selectNewsCompanyAll(): List<NewsCompanyEntity> {
-        val sql = "SELECT * FROM news_company"
-        return template.databaseClient.sql(sql)
-            .map { row, meta -> converter.read(NewsCompanyEntity::class.java, row, meta) }
-            .all()
-            .collectList()
-            .awaitSingle()
-    }
 
-    suspend fun selectNewsCompanyByDomainPrefix(domainPrefix: String): NewsCompanyEntity? {
-        val sql = "SELECT * FROM news_company WHERE domain_prefix = :domainPrefix LIMIT 1"
-        return template.databaseClient.sql(sql)
-            .bind("domainPrefix", domainPrefix)
-            .map { row, meta -> converter.read(NewsCompanyEntity::class.java, row, meta) }
-            .one()
-            .awaitSingleOrNull()
+    suspend fun findOrCreateByDomainPrefix(domain: String, name: String): NewsCompanyEntity {
+        val insertSql = "INSERT IGNORE INTO news_company (domain_prefix, name) VALUES (:domain, :name)"
+        val selectSql = "SELECT * FROM news_company WHERE domain_prefix = :domain LIMIT 1"
+
+        val transactionalResult: Mono<NewsCompanyEntity> = operator.execute { tx ->
+            template.databaseClient.sql(insertSql)
+                .bind("domain", domain)
+                .bind("name", name)
+                .fetch()
+                .rowsUpdated()
+                .then(
+                    template.databaseClient.sql(selectSql)
+                        .bind("domain", domain)
+                        .map { row, meta -> template.converter.read(NewsCompanyEntity::class.java, row, meta) }
+                        .one()
+                )
+        }.single()
+
+        return transactionalResult.awaitSingle()
     }
 }
