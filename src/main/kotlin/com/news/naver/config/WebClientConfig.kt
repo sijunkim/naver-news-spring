@@ -26,6 +26,7 @@ class WebClientConfig {
             .build()
 
         val httpClient = HttpClient.create(provider) // 설정된 커넥션 풀로 HttpClient 생성
+            .keepAlive(false)
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // 5초 내에 연결되지 않으면 타임아웃
             .responseTimeout(Duration.ofSeconds(10)) // 10초 내에 응답이 오지 않으면 타임아웃
             .doOnConnected { conn ->

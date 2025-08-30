@@ -11,14 +11,16 @@ class SpamKeywordLogRepository(
     private val template: R2dbcEntityTemplate,
 ) {
 
-    suspend fun findByKeyword(keyword: String): SpamKeywordLogEntity? {
+    suspend fun findFirstByKeywordAndCreatedAtAfter(keyword: String, createdAt: java.time.LocalDateTime): SpamKeywordLogEntity? {
         val sql = """
             SELECT id, keyword, count, created_at
             FROM spam_keyword_log
             WHERE keyword = :keyword
+            AND created_at > :createdAt
         """.trimIndent()
         return template.databaseClient.sql(sql)
             .bind("keyword", keyword)
+            .bind("createdAt", createdAt)
             .map { row, _ ->
                 SpamKeywordLogEntity(
                     id = row.get("id", Long::class.java)!!,

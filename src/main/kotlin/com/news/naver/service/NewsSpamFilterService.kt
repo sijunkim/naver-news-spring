@@ -4,6 +4,7 @@ import com.news.naver.entity.SpamKeywordLogEntity
 import com.news.naver.property.AppProperties
 import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 @Service
 class NewsSpamFilterService(
@@ -20,7 +21,7 @@ class NewsSpamFilterService(
         val tokens = tokenize(title)
 
         for (t in tokens) {
-            val entity = spamRepo.findByKeyword(t)
+            val entity = spamRepo.findFirstByKeywordAndCreatedAtAfter(t, LocalDateTime.now().minusHours(3))
             if (entity != null) {
                 count += entity.count
             }
