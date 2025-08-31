@@ -39,39 +39,42 @@ class NewsProcessingService(
         val lastPollTimeKey = "last_poll_time_${channel.name}"
         val lastPollTimeString = runtimeStateRepository.selectState(lastPollTimeKey)
 
-        val lastPollTime = if (lastPollTimeString != null) {
+        // 1. 마지막 폴링 시간 파싱, 없으면 null
+        val lastPollTime = lastPollTimeString?.let {
             try {
-                LocalDateTime.parse(lastPollTimeString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             } catch (e: Exception) {
-                logger.error("Failed to parse stored lastPollTime: $lastPollTimeString. Defaulting to today's 00:00:00", e)
-                LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0)
+                logger.error("Failed to parse stored lastPollTime: $it. Defaulting to null, will process all.", e)
+                null
             }
-        } else {
-            LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0)
         }
-        logger.info("Channel [${channel.name}]: Last poll time for filtering: $lastPollTime")
+
+        if (lastPollTime == null) {
+            logger.info("Channel [${channel.name}]: No valid last poll time. Processing all fetched items.")
+        } else {
+            logger.info("Channel [${channel.name}]: Last poll time for filtering: $lastPollTime")
+        }
 
 
         val resp = naverNewsClient.search(channel.query, display = 30, start = 1, sort = "date")
 
+
+
+        // 2. lastPollTime이 null이면 시간 필터링 없이 모든 아이템 처리
         val itemsToProcess = resp.items
             ?.filter { it.title?.contains(channel.query) ?: false }
             ?.filter { item ->
-                val publishedAtFormatted = refiner.pubDateToKst(item.pubDate)
-                val publishedAt = publishedAtFormatted?.let {
-                    try {
-                        LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                    } catch (e: Exception) {
-                        logger.error("Failed to parse item pubDate: $it", e)
-                        null
-                    }
+                if (lastPollTime == null) {
+                    true // Process all if no last poll time
+                } else {
+                    val publishedAt = parsePubDate(item.pubDate)
+                    publishedAt?.isAfter(lastPollTime) ?: false
                 }
-                publishedAt?.isAfter(lastPollTime) ?: false
             }
 
         if (itemsToProcess.isNullOrEmpty()) {
             logger.info("No new items found for channel: ${channel.name} after filtering by timestamp.")
-            runtimeStateRepository.updateState(lastPollTimeKey, LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            // 처리할 아이템이 없으면 lastPollTime을 업데이트하지 않음
             return
         }
 
@@ -82,7 +85,26 @@ class NewsProcessingService(
         }
         logger.info("[${channel.name}] $sentCount news items sent to Slack.")
 
-        runtimeStateRepository.updateState(lastPollTimeKey, LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+        // 3. 처리된 마지막 아이템의 시간으로 lastPollTime 업데이트
+        val lastItemTime = parsePubDate(itemsToProcess.last().pubDate)
+        if (lastItemTime != null) {
+            runtimeStateRepository.updateState(lastPollTimeKey, lastItemTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            logger.info("Channel [${channel.name}]: Updated last poll time to $lastItemTime")
+        } else {
+            logger.warn("Channel [${channel.name}]: Could not parse pubDate of the last item. Last poll time not updated.")
+        }
+    }
+
+    // Helper function to parse date to avoid repetition
+    fun parsePubDate(pubDate: String?): LocalDateTime? {
+        return refiner.pubDateToKst(pubDate)?.let {
+            try {
+                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            } catch (e: Exception) {
+                logger.error("Failed to parse item pubDate: $it", e)
+                null
+            }
+        }
     }
 
     private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
@@ -107,6 +129,7 @@ class NewsProcessingService(
         // 기사 저장
         val savedRows = articleRepo.insertNewsArticle(
             naverLinkHash = hash,
+            link = item.link!!,
             title = title,
             summary = description,
             companyId = company?.id,

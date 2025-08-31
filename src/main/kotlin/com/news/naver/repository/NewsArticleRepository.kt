@@ -5,6 +5,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.r2dbc.convert.MappingR2dbcConverter
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.delete
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -29,6 +30,7 @@ class NewsArticleRepository(
      */
     suspend fun insertNewsArticle(
         naverLinkHash: String,
+        link: String,
         title: String,
         summary: String?,
         companyId: Long?,
@@ -38,13 +40,14 @@ class NewsArticleRepository(
     ): Long {
         val sql = """
             INSERT INTO news_article
-              (naver_link_hash, title, summary, company_id, published_at, fetched_at, raw_json)
+              (naver_link_hash, naver_link, title, summary, company_id, published_at, fetched_at, raw_json)
             VALUES
-              (:hash, :title, :summary, :companyId, :publishedAt, :fetchedAt, :rawJson)
+              (:hash, :link, :title, :summary, :companyId, :publishedAt, :fetchedAt, :rawJson)
         """.trimIndent()
 
         return template.databaseClient.sql(sql)
             .bind("hash", naverLinkHash)
+            .bind("link", link)
             .bind("title", title)
             .bind("summary", summary)
             .bind("companyId", companyId)
@@ -81,7 +84,7 @@ class NewsArticleRepository(
 
         val sql = """
             INSERT INTO news_article
-              (naver_link_hash, title, summary, company_id, published_at, fetched_at, raw_json)
+              (naver_link_hash, naver_link, title, summary, company_id, published_at, fetched_at, raw_json)
             VALUES
               (?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
@@ -98,5 +101,9 @@ class NewsArticleRepository(
                 .bind(6, article.rawJson)
         }
         return statement.fetch().rowsUpdated().awaitSingle()
+    }
+
+    suspend fun deleteAll(): Long {
+        return template.delete(NewsArticleEntity::class.java).all().awaitSingle()
     }
 }

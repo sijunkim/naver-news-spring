@@ -1,6 +1,7 @@
 package com.news.naver.entity
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 
@@ -20,12 +21,30 @@ import java.time.LocalDateTime
 @Table("news_article")
 data class NewsArticleEntity(
     @Id
+    @Column("id")
     val id: Long? = null,
+
+    @Column("naver_link_hash")
     val naverLinkHash: String,
+
+    @Column("naver_link")
+    val naverLink: String,
+
+    @Column("title")
     val title: String,
+
+    @Column("summary")
     val summary: String?,
+
+    @Column("company_id")
     val companyId: Long?,
+
+    @Column("published_at")
     val publishedAt: LocalDateTime?,
+
+    @Column("fetched_at")
     val fetchedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Column("raw_json")
     val rawJson: String?
 )
