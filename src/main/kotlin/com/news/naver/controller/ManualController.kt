@@ -11,6 +11,12 @@ class ManualController(
     private val manualService: ManualService
 ) {
 
+    @PostMapping("/manual/news/dev")
+    suspend fun triggerDevNews(): ResponseEntity<String> {
+        manualService.runDevNewsPoll()
+        return ResponseEntity.ok("Dev news poll triggered.")
+    }
+
     @PostMapping("/manual/news/breaking")
     suspend fun triggerBreakingNews(): ResponseEntity<String> {
         manualService.runBreakingNewsPoll()

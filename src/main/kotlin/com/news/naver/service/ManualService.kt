@@ -12,6 +12,10 @@ class ManualService(
     private val runtimeStateRepository: RuntimeStateRepository
 ) {
 
+    suspend fun runDevNewsPoll() {
+        newsProcessingService.runOnce(NewsChannel.DEV)
+    }
+
     suspend fun runBreakingNewsPoll() {
         newsProcessingService.runOnce(NewsChannel.BREAKING)
     }

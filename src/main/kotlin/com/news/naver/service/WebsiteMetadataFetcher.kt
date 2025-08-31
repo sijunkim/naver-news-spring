@@ -51,7 +51,7 @@ class WebsiteMetadataFetcher(
             }
         } catch (e: Exception) {
             logger.warn("Failed to fetch or parse from {}: {}", url, e.message)
-            null
+            return url
         }
     }
 
