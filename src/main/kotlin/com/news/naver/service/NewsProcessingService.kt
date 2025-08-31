@@ -110,17 +110,17 @@ class NewsProcessingService(
     private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
         val title = refiner.refineTitle(item.title)
         val description = refiner.refineDescription(item.description)
-        val companyDomain = refiner.extractCompany(item.link)
-        val company = companyDomain?.let { newsCompanyService.findOrCreateCompany(it) }
+        val companyDomain = refiner.extractCompany(item.link)!!
+        val company = companyDomain.let { newsCompanyService.findOrCreateCompany(it) }
 
         val normalizedUrl = HashUtils.normalizeUrl(item.link)
-        val hash = HashUtils.sha256(normalizedUrl)
+        val hash = HashUtils.sha256(normalizedUrl + company.id)
 
         // 중복 기사 방지
         if (articleRepo.countNewsArticleByHash(hash) > 0L) return false // Return false if duplicate
 
         // 제외 룰 검사
-        if (filter.isExcluded(title, company?.name, channel)) return false // Return false if excluded
+        if (filter.isExcluded(title, company.name, channel)) return false // Return false if excluded
 
         // 스팸(중복 키워드) 검사
         val isSpam = spam.isSpamByTitleTokens(title)
@@ -148,7 +148,7 @@ class NewsProcessingService(
             NewsChannel.EXCLUSIVE -> MessageConstants.SLACK_PREFIX_EXCLUSIVE
             NewsChannel.DEV -> MessageConstants.SLACK_PREFIX_DEV
         }
-        val text = refiner.slackText(prefix, title, normalizedUrl, company?.name)
+        val text = refiner.slackText(prefix, title, normalizedUrl, company.name)
         val sendResult = slack.send(channel, text)
 
         // 전송 로그

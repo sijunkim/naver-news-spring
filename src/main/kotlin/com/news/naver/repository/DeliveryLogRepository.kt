@@ -70,4 +70,12 @@ class DeliveryLogRepository(
             .one()
             .awaitSingle()
     }
+
+    suspend fun deleteAll() : Long {
+        val sql = "DELETE FROM delivery_log"
+        return template.databaseClient.sql(sql)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }

@@ -44,6 +44,8 @@ class WebsiteMetadataFetcher(
                 .bodyToMono(String::class.java)
                 .awaitSingleOrNull()
 
+            // TODO `Found. Redirecting to https://m.news.naver.com` 같은 리다이렉트 페이지 처리 필요
+
             html?.let {
                 // 헬퍼 함수를 사용하여 순차적으로 파싱 및 처리
                 findAndProcessTitle(ogTitlePattern, it, "og:title", url)

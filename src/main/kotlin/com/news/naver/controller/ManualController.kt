@@ -41,9 +41,9 @@ class ManualController(
         return ResponseEntity.ok("Deleted $count poll timestamp entries.")
     }
 
-    @DeleteMapping("/manual/runtime-data")
+    @DeleteMapping("/manual/reset-all-data")
     suspend fun deleteRuntimeData(): ResponseEntity<String> {
-        manualService.resetRuntimeData()
+        manualService.resetAllData()
         return ResponseEntity.ok("Runtime data reset.")
     }
 }

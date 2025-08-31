@@ -1,6 +1,7 @@
 package com.news.naver.service
 
 import com.news.naver.data.enum.NewsChannel
+import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.RuntimeStateRepository
 import com.news.naver.repository.SpamKeywordLogRepository
@@ -11,7 +12,8 @@ class ManualService(
     private val newsArticleRepository: NewsArticleRepository,
     private val newsProcessingService: NewsProcessingService,
     private val spamKeywordLogRepository: SpamKeywordLogRepository,
-    private val runtimeStateRepository: RuntimeStateRepository
+    private val runtimeStateRepository: RuntimeStateRepository,
+    private val deliveryRepo: DeliveryLogRepository,
 ) {
 
     suspend fun runDevNewsPoll() {
@@ -38,9 +40,14 @@ class ManualService(
         return newsArticleRepository.deleteAll()
     }
 
-    suspend fun resetRuntimeData() {
+    suspend fun deleteDeliveryLogs(): Long {
+        return deliveryRepo.deleteAll()
+    }
+
+    suspend fun resetAllData() {
         deleteNewsArticles()
         resetSpamKeywords()
         deletePollTimestamps()
+        deleteDeliveryLogs()
     }
 }
