@@ -34,6 +34,7 @@ class WebsiteMetadataFetcher(
 
     /**
      * 주어진 URL로 접속하여 og:title 또는 title 태그의 내용을 파싱합니다.
+     * WebClient가 리다이렉션을 자동으로 처리합니다.
      */
     private suspend fun fetchAndParse(url: String): String? {
         return try {
@@ -44,10 +45,8 @@ class WebsiteMetadataFetcher(
                 .bodyToMono(String::class.java)
                 .awaitSingleOrNull()
 
-            // TODO `Found. Redirecting to https://m.news.naver.com` 같은 리다이렉트 페이지 처리 필요
-
             html?.let {
-                // 헬퍼 함수를 사용하여 순차적으로 파싱 및 처리
+                // WebClient가 리다이렉트를 자동으로 처리하므로, 최종 응답만 파싱합니다.
                 findAndProcessTitle(ogTitlePattern, it, "og:title", url)
                     ?: findAndProcessTitle(titlePattern, it, "<title>", url)
             }
