@@ -1,6 +1,5 @@
 package com.news.naver.service
 
-import com.news.naver.entity.SpamKeywordLogEntity
 import com.news.naver.property.AppProperties
 import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
@@ -40,9 +39,5 @@ class NewsSpamFilterService(
         }
     }
 
-    private fun tokenize(title: String): List<String> =
-        title.replace(" ", " ")
-            .split(" ", "·", "—", "-", "\t", "\n", "\r")
-            .map { it.trim() }
-            .filter { it.length >= 2 }
+    private fun tokenize(title: String): List<String> = title.split(Regex("\\s+")).filter { it.isNotBlank() }
 }

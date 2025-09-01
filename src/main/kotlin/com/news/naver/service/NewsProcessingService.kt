@@ -3,7 +3,6 @@ package com.news.naver.service
 import com.news.naver.client.NaverNewsClient
 import com.news.naver.client.SlackClient
 import com.news.naver.common.HashUtils
-import com.news.naver.data.constant.MessageConstants
 import com.news.naver.data.dto.Item
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
@@ -132,7 +131,7 @@ class NewsProcessingService(
             link = item.link!!,
             title = title,
             summary = description,
-            companyId = company?.id,
+            companyId = company.id,
             publishedAt = LocalDateTime.now(), // 필요 시 refiner.pubDateToKst(item.pubDate) 파싱하여 사용
             fetchedAt = LocalDateTime.now(),
             rawJson = null
@@ -142,14 +141,7 @@ class NewsProcessingService(
         // id 조회(RETURNING 미사용이므로 재조회)
         val saved = articleRepo.selectNewsArticleByHash(hash) ?: return false // Return false if not found after save
 
-        // Slack 전송
-        val prefix = when (channel) {
-            NewsChannel.BREAKING -> MessageConstants.SLACK_PREFIX_BREAKING
-            NewsChannel.EXCLUSIVE -> MessageConstants.SLACK_PREFIX_EXCLUSIVE
-            NewsChannel.DEV -> MessageConstants.SLACK_PREFIX_DEV
-        }
-        val text = refiner.slackText(prefix, title, normalizedUrl, company.name)
-        val sendResult = slack.send(channel, text)
+        val sendResult = slack.send(channel, title)
 
         // 전송 로그
         deliveryRepo.insertDeliveryLog(

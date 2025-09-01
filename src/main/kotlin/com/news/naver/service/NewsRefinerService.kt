@@ -34,23 +34,15 @@ class NewsRefinerService {
     }
 
     /**
-     * originallink 에서 도메인(언론사 후보) 추출
+     * originalLink 에서 도메인(언론사 후보) 추출
      */
-    fun extractCompany(originallink: String?): String? {
-        val target = originallink ?: return null
+    fun extractCompany(originalLink: String?): String? {
+        val target = originalLink ?: return null
         return try {
             val host = URI(target).host ?: return null
             host.lowercase()
                 .removePrefix("www.")
                 .removePrefix("m.")
         } catch (_: Exception) { null }
-    }
-
-    /**
-     * Slack 메시지 텍스트 구성
-     */
-    fun slackText(prefix: String, title: String, normalizedUrl: String?, company: String?): String {
-        val companySuffix = company?.let { " ($it)" } ?: ""
-        return "$prefix $title$companySuffix\n$normalizedUrl"
     }
 }

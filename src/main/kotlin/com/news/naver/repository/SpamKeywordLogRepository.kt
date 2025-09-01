@@ -5,13 +5,14 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.awaitSingleOrNull
 import org.springframework.stereotype.Repository
+import java.time.LocalDateTime
 
 @Repository
 class SpamKeywordLogRepository(
     private val template: R2dbcEntityTemplate,
 ) {
 
-    suspend fun findFirstByKeywordAndCreatedAtAfter(keyword: String, createdAt: java.time.LocalDateTime): SpamKeywordLogEntity? {
+    suspend fun findFirstByKeywordAndCreatedAtAfter(keyword: String, createdAt: LocalDateTime): SpamKeywordLogEntity? {
         val sql = """
             SELECT id, keyword, count, created_at
             FROM spam_keyword_log
@@ -26,7 +27,7 @@ class SpamKeywordLogRepository(
                     id = row.get("id", Long::class.java)!!,
                     keyword = row.get("keyword", String::class.java)!!,
                     count = row.get("count", Integer::class.java)!!.toInt(),
-                    createdAt = row.get("created_at", java.time.LocalDateTime::class.java)!!
+                    createdAt = row.get("created_at", LocalDateTime::class.java)!!
                 )
             }
             .awaitSingleOrNull()
