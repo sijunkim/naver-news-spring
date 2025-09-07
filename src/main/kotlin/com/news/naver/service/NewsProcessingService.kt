@@ -4,6 +4,7 @@ import com.news.naver.client.NaverNewsClient
 import com.news.naver.client.SlackClient
 import com.news.naver.common.HashUtils
 import com.news.naver.data.dto.Item
+import com.news.naver.data.dto.News
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
@@ -14,7 +15,9 @@ import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Service
 class NewsProcessingService(
@@ -106,6 +109,46 @@ class NewsProcessingService(
         }
     }
 
+    fun getPayloadAsMap(news: News): Map<String, Any?> {
+        return mapOf(
+            "text" to news.title, // 슬랙 알림을 위한 필수 필드
+            "blocks" to listOf(
+                mapOf(
+                    "type" to "section",
+                    "text" to mapOf(
+                        "type" to "mrkdwn",
+                        "text" to "*<${news.link}|${news.title}>*"
+                    )
+                ),
+                // mapOf(
+                //     "type" to "context",
+                //     "elements" to listOf(
+                //         mapOf(
+                //             "type" to "plain_text",
+                //             "text" to news.description
+                //         )
+                //     )
+                // ),
+                mapOf(
+                    "type" to "context",
+                    "elements" to listOf(
+                        mapOf(
+                            "type" to "plain_text",
+                            "text" to "${toKoreanDateTimeStringOneLiner(news.pubDate!!)} | ${news.company}"
+                        )
+                    )
+                ),
+                mapOf(
+                    "type" to "divider"
+                )
+            )
+        )
+    }
+
+    fun toKoreanDateTimeStringOneLiner(dateString: String): String =
+        ZonedDateTime.parse(dateString, DateTimeFormatter.RFC_1123_DATE_TIME)
+            .format(DateTimeFormatter.ofPattern("yyyy년 M월 d일 (EEEE) h:mm:ss a", Locale.KOREAN))
+
     private suspend fun processItem(channel: NewsChannel, item: Item): Boolean { // Changed return type to Boolean
         val title = refiner.refineTitle(item.title)
         val description = refiner.refineDescription(item.description)
@@ -129,6 +172,7 @@ class NewsProcessingService(
         val savedRows = articleRepo.insertNewsArticle(
             naverLinkHash = hash,
             link = item.link!!,
+            originalLink = item.link,
             title = title,
             summary = description,
             companyId = company.id,
@@ -138,10 +182,20 @@ class NewsProcessingService(
         )
         if (savedRows <= 0) return false // Return false if not saved
 
+        val news = News(
+            title = title,
+            originalLink = item.link,
+            link = item.link,
+            company = company.name,
+            description = description,
+            pubDate = item.pubDate
+        )
+        val payload = getPayloadAsMap(news)
+
         // id 조회(RETURNING 미사용이므로 재조회)
         val saved = articleRepo.selectNewsArticleByHash(hash) ?: return false // Return false if not found after save
 
-        val sendResult = slack.send(channel, title)
+        val sendResult = slack.send(channel, payload)
 
         // 전송 로그
         deliveryRepo.insertDeliveryLog(

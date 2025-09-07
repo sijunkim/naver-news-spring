@@ -3,7 +3,9 @@ package com.news.naver.controller
 import com.news.naver.service.ManualService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -45,5 +47,13 @@ class ManualController(
     suspend fun deleteRuntimeData(): ResponseEntity<String> {
         manualService.resetAllData()
         return ResponseEntity.ok("Runtime data reset.")
+    }
+
+    @GetMapping("/manual/domain-check")
+    suspend fun checkDomains(
+        @RequestParam("domain") domain: String
+    ): ResponseEntity<String> {
+        val title = manualService.getDomain(domain)
+        return ResponseEntity.ok(title)
     }
 }

@@ -22,14 +22,8 @@ class WebsiteMetadataFetcher(
      * 도메인을 받아 https, http 순으로 사이트 제목을 가져옵니다.
      */
     suspend fun fetchPageTitle(domain: String): String? {
-        // 1. HTTPS 먼저 시도
-        val titleFromHttps = fetchAndParse("https://$domain")
-        if (titleFromHttps != null) {
-            return titleFromHttps
-        }
-
-        // 2. HTTPS 실패 시 HTTP 시도
-        return fetchAndParse("http://$domain")
+        val titleFromHttps = fetchAndParse(domain)
+        return titleFromHttps ?: domain
     }
 
     /**
@@ -52,7 +46,7 @@ class WebsiteMetadataFetcher(
             }
         } catch (e: Exception) {
             logger.warn("Failed to fetch or parse from {}: {}", url, e.message)
-            return url
+            return null
         }
     }
 

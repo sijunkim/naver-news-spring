@@ -19,13 +19,13 @@ class SlackClient(
     private val webClient: WebClient,
     private val props: SlackProperties
 ) {
-    suspend fun send(channel: NewsChannel, text: String): SlackSendResult {
+    suspend fun send(channel: NewsChannel, payload: Map<String, Any?>): SlackSendResult {
         val url = props.urlFor(channel)
 
         val resp = webClient.post()
             .uri(url)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(mapOf("text" to text)))
+            .body(BodyInserters.fromValue(payload))
             .retrieve()
             .toEntity(String::class.java)
             .awaitSingleOrNull()

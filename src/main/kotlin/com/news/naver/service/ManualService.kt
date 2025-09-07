@@ -14,6 +14,7 @@ class ManualService(
     private val spamKeywordLogRepository: SpamKeywordLogRepository,
     private val runtimeStateRepository: RuntimeStateRepository,
     private val deliveryRepo: DeliveryLogRepository,
+    private val metadataFetcher: WebsiteMetadataFetcher
 ) {
 
     suspend fun runDevNewsPoll() {
@@ -49,5 +50,9 @@ class ManualService(
         resetSpamKeywords()
         deletePollTimestamps()
         deleteDeliveryLogs()
+    }
+
+    suspend fun getDomain(domain: String): String? {
+        return metadataFetcher.fetchPageTitle(domain)
     }
 }

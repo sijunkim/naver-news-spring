@@ -29,6 +29,7 @@ class WebClientConfig {
             .keepAlive(false)
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // 5초 내에 연결되지 않으면 타임아웃
             .responseTimeout(Duration.ofSeconds(10)) // 10초 내에 응답이 오지 않으면 타임아웃
+            .followRedirect(true)
             .doOnConnected { conn ->
                 conn
                     .addHandlerLast(ReadTimeoutHandler(10, TimeUnit.SECONDS)) // 10초 내에 읽기 작업이 없으면 타임아웃

@@ -31,6 +31,7 @@ class NewsArticleRepository(
     suspend fun insertNewsArticle(
         naverLinkHash: String,
         link: String,
+        originalLink: String?,
         title: String,
         summary: String?,
         companyId: Long?,
@@ -40,14 +41,15 @@ class NewsArticleRepository(
     ): Long {
         val sql = """
             INSERT INTO news_article
-              (naver_link_hash, naver_link, title, summary, company_id, published_at, fetched_at, raw_json)
+              (naver_link_hash, naver_link, original_link, title, summary, company_id, published_at, fetched_at, raw_json)
             VALUES
-              (:hash, :link, :title, :summary, :companyId, :publishedAt, :fetchedAt, :rawJson)
+              (:hash, :link, :originalLink, :title, :summary, :companyId, :publishedAt, :fetchedAt, :rawJson)
         """.trimIndent()
 
         return template.databaseClient.sql(sql)
             .bind("hash", naverLinkHash)
             .bind("link", link)
+            .bind("originalLink", originalLink)
             .bind("title", title)
             .bind("summary", summary)
             .bind("companyId", companyId)

@@ -14,14 +14,14 @@ class NewsRefinerService {
     fun refineTitle(raw: String?): String =
         raw?.replace(htmlTagRegex, "")?.replace("&quot;", "\"")?.trim().orEmpty()
 
-    fun refineDescription(raw: String?): String? =
+    fun refineDescription(raw: String?): String =
         raw?.replace(htmlTagRegex, "")
             ?.replace("&quot;", "")
             ?.replace("&amp;", "&")
             ?.replace("&lt;", "<")
             ?.replace("&gt;", ">")
             ?.replace("&nbsp;", " ")
-            ?.trim().orEmpty()
+            ?.trim() ?: "내용 없음"
 
     /**
      * 네이버 RSS pubDate → KST(Asia/Seoul) 로 변환 (형식: RFC_1123)
