@@ -211,7 +211,7 @@ DEVELOP_WEBHOOK_URL=
 - naver.openapi.* → NaverProperties.kt
 - slack.webhook.* → SlackProperties.kt
 
-  ---
+---
 
 ## 10. 관찰성(Observability)
 - **Actuator**: `/actuator/health`, `/actuator/metrics`
@@ -222,63 +222,15 @@ DEVELOP_WEBHOOK_URL=
 
 ---
 
-## 11. 오류 처리 & 재시도
-- **HTTP 5xx/네트워크 오류**: 지수 백오프 + 지터로 N회 재시도 후 실패 기록
-- **Slack 429(레이트리밋)**: 동일 전략 + 쿨다운 로그
-- **DB 예외**: 고유키 충돌 시 중복으로 간주, 스킵 처리
-
----
-
-## 12. 보안
-- API 키/웹훅 URL: 환경변수로 주입, 로그 마스킹
-- 네트워크 경계: 아웃바운드 전용, 필요 시 프록시/게이트웨이 적용
-
----
-
-## 13. 배포/실행
-- **로컬**: `.env` 준비 → IntelliJ에서 `NewsApplication` 실행 또는 `./gradlew bootRun`
-- **컨테이너**(옵션): Dockerfile/K8s 매니페스트 추가 예정. `SERVER_PORT` 포함 환경변수 주입
-
----
-
-## 14. 테스트 전략
-
-프로젝트 안정성 확보를 위한 계층별 테스트 전략. Spring Boot 테스트 도구와 Mockito 적극 활용
-
-### 14.1 컨트롤러 계층 테스트
-- 목표: API 엔드포인트 요청/응답 동작 검증.
-- 활용 기술: @WebFluxTest, WebTestClient, @MockBean
-- 방식:
-  - @WebFluxTest를 활용한 컨트롤러 격리 테스트 환경 구성
-  - @MockBean을 활용한 서비스 계층 Mock 처리 및 컨트롤러 로직 순수성 확보
-  - WebTestClient를 활용한 API 호출 및 응답 상태/본문 검증
-- 구현: ManualControllerTest.kt
-
-### 14.2 서비스 계층 테스트
-- 목표: 서비스 비즈니스 로직 동작에 대한 단위 테스트 검증
-- 활용 기술: Mockito, JUnit 5, kotlinx-coroutines-test
-- 방식:
-  - MockitoExtension을 활용한 Mockito 통합
-  - @Mock 및 @InjectMocks를 활용한 의존성 Mock 객체 주입
-  - runTest 빌더를 활용한 suspend 함수 테스트
-  - verify를 활용한 Mock 객체 함수 호출 여부 검증
-- 구현: ManualServiceTest.kt
-
-### 14.3 통합 테스트 및 향후 계획
-- Application Context 테스트: @SpringBootTest를 활용한 전체 Application Context 로드 검증
-- 외부 API 연동 테스트 (향후): MockWebServer를 활용한 외부 API 연동 시뮬레이션 및 다양한 시나리오 검증
-- DB 통합 테스트 (향후): Testcontainers를 활용한 R2DBC 리포지토리 쿼리 및 데이터 영속성 검증
-
----
-
-## 15. 향후 고도화 로드맵
+## 11. 향후 고도화 로드맵
+- Local LLM(gemma3:4b) 연동으로 기사 요약/분석/태깅
 - 유사도 판단(제목 토큰/벡터 검색)으로 정교한 중복/스팸 차단
 - Slack 스레딩/리치 포맷(블록 키트) 지원
 - 관리자 API/대시보드(제외 룰 CRUD, 전송 이력 조회)
 
 ---
 
-## 16. 용어
+## 12. 용어
 - **채널(Channel)**: BREAKING(속보), EXCLUSIVE(단독), DEV(개발 테스트)
 - **정규화 URL**: 파라미터/프래그먼트 제거하고 소문자화한 URL
 
