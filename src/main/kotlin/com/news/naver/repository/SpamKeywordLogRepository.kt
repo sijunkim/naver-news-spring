@@ -12,22 +12,23 @@ class SpamKeywordLogRepository(
     private val template: R2dbcEntityTemplate,
 ) {
 
-    suspend fun findFirstByKeywordAndCreatedAtAfter(keyword: String, createdAt: LocalDateTime): SpamKeywordLogEntity? {
+    suspend fun findFirstByKeywordAndCreatedAtAfter(keyword: String, updatedAt: LocalDateTime): SpamKeywordLogEntity? {
         val sql = """
-            SELECT id, keyword, count, created_at
+            SELECT id, keyword, count, created_at, updated_at
             FROM spam_keyword_log
             WHERE keyword = :keyword
-            AND created_at > :createdAt
+            AND updated_at > :updated_at
         """.trimIndent()
         return template.databaseClient.sql(sql)
             .bind("keyword", keyword)
-            .bind("createdAt", createdAt)
+            .bind("updated_at", updatedAt)
             .map { row, _ ->
                 SpamKeywordLogEntity(
                     id = row.get("id", Long::class.java)!!,
                     keyword = row.get("keyword", String::class.java)!!,
                     count = row.get("count", Integer::class.java)!!.toInt(),
-                    createdAt = row.get("created_at", LocalDateTime::class.java)!!
+                    createdAt = row.get("created_at", LocalDateTime::class.java)!!,
+                    updatedAt = row.get("updated_at", LocalDateTime::class.java)
                 )
             }
             .awaitSingleOrNull()
@@ -37,7 +38,7 @@ class SpamKeywordLogRepository(
         val sql = """
             INSERT INTO spam_keyword_log (keyword, count, created_at)
             VALUES (:keyword, 1, NOW())
-            ON DUPLICATE KEY UPDATE count = count + 1
+            ON DUPLICATE KEY UPDATE count = count + 1, updated_at = NOW()
         """.trimIndent()
 
         template.databaseClient.sql(sql)

@@ -16,15 +16,13 @@ class NewsSpamFilterService(
      * 정책: 길이 2 미만 토큰은 무시.
      */
     suspend fun isSpamByTitleTokens(title: String): Boolean {
-        var count = 0
         val tokens = tokenize(title)
 
         for (t in tokens) {
             val entity = spamRepo.findFirstByKeywordAndCreatedAtAfter(t, LocalDateTime.now().minusHours(3))
             if (entity != null) {
-                count += entity.count
+                if (entity.count >= appProperties.duplicate.threshold) return true
             }
-            if (count > appProperties.duplicate.threshold) return true
         }
         return false
     }

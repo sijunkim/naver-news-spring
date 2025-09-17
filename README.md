@@ -118,7 +118,7 @@ CREATE TABLE `spam_keyword_log` (
   `keyword` varchar(200) NOT NULL,
   `count` int NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `spam_keyword_logcol` varchar(45) DEFAULT NULL,
+  `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `keyword_UNIQUE` (`keyword`),
   KEY `idx_created_at` (`created_at`),
