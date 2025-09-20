@@ -118,14 +118,12 @@ CREATE TABLE `spam_keyword_log` (
   `keyword` varchar(200) NOT NULL,
   `count` int NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `keyword_UNIQUE` (`keyword`),
   KEY `idx_created_at` (`created_at`),
   KEY `idx_keyword` (`keyword`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-
 ```
 - **중복 방지 키**: `naver_link_hash`(정규화 URL의 SHA-256)
 - **전송 중복 방지**: `delivery_log`의 `(article_id, channel)` UNIQUE
