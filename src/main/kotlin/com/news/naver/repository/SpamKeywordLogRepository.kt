@@ -17,7 +17,7 @@ class SpamKeywordLogRepository(
             SELECT id, keyword, count, created_at, updated_at
             FROM spam_keyword_log
             WHERE keyword = :keyword
-            AND updated_at > :updated_at
+            AND COALESCE(updated_at, created_at) > :updated_at
         """.trimIndent()
         return template.databaseClient.sql(sql)
             .bind("keyword", keyword)
