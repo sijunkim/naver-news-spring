@@ -31,3 +31,15 @@ slack:
     breaking: ${BREAKING_NEWS_WEBHOOK_URL}
     exclusive: ${EXCLUSIVE_NEWS_WEBHOOK_URL}
     develop: ${DEVELOP_WEBHOOK_URL}
+
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:localhost}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:http}
+  username: ${ELASTICSEARCH_USERNAME:elastic}
+  password: ${ELASTICSEARCH_PASSWORD:changeme}
+
+logstash:
+  host: ${LOGSTASH_HOST:localhost}
+  tcp-port: ${LOGSTASH_TCP_PORT:5044}
+  http-port: ${LOGSTASH_HTTP_PORT:9600}
