@@ -1,6 +1,6 @@
 package com.news.naver
 
-import com.news.naver.config.DatabaseHealthChecker
+import com.news.naver.config.HealthChecker
 import com.news.naver.property.AppProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.property.SlackProperties
@@ -30,16 +30,16 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class NewsApplication {
 
     /**
-     * 애플리케이션 시작 시 데이터베이스 연결 상태를 확인하는 빈을 정의합니다。
-     * `DatabaseHealthChecker`를 사용하여 실제 DB 연결을 검증합니다.
+     * 애플리케이션 시작 시 등록된 모든 `HealthChecker` 구현을 순차 실행합니다.
+     * 하나의 `runBlocking` 스코프 안에서 DB, Redis 등 외부 저장소 연결 상태를 검증합니다.
      *
-     * @param healthChecker 데이터베이스 헬스 체크를 담당하는 서비스
-     * @return 애플리케이션 시작 시 실행될 `ApplicationRunner` 인스턴스
+     * @param healthCheckers 스프링 컨텍스트에 등록된 헬스체크 구현 목록
+     * @return 시작 시 실행되어 각 시스템의 헬스체크를 수행하는 `ApplicationRunner`
      */
     @Bean
-    fun databaseHealthCheck(healthChecker: DatabaseHealthChecker) = ApplicationRunner {
+    fun healthChecks(healthCheckers: List<HealthChecker>) = ApplicationRunner {
         runBlocking {
-            healthChecker.check()
+            healthCheckers.forEach { it.check() }
         }
     }
 }

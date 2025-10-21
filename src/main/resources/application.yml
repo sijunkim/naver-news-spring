@@ -9,6 +9,13 @@ spring:
     username: ${DB_USER:kimsijun}
     password: ${DB_PASSWORD:1234}
     initialization-mode: always
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:sijunkim}
+      timeout: ${REDIS_TIMEOUT:5000ms}
 
 app:
   poll:

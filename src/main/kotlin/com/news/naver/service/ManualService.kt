@@ -4,14 +4,13 @@ import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.RuntimeStateRepository
-import com.news.naver.repository.SpamKeywordLogRepository
 import org.springframework.stereotype.Service
 
 @Service
 class ManualService(
     private val newsArticleRepository: NewsArticleRepository,
     private val newsProcessingService: NewsProcessingService,
-    private val spamKeywordLogRepository: SpamKeywordLogRepository,
+    private val newsSpamFilterService: NewsSpamFilterService,
     private val runtimeStateRepository: RuntimeStateRepository,
     private val deliveryRepo: DeliveryLogRepository,
     private val metadataFetcher: WebsiteMetadataFetcher
@@ -30,7 +29,7 @@ class ManualService(
     }
 
     suspend fun resetSpamKeywords(): Long {
-        return spamKeywordLogRepository.deleteAll()
+        return newsSpamFilterService.resetKeywordCounters()
     }
 
     suspend fun deletePollTimestamps(): Long {
