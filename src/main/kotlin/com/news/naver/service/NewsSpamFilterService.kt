@@ -44,7 +44,7 @@ class NewsSpamFilterService(
         }
 
         for (token in tokens) {
-            val previousCount = if (redisAvailable.get()) {
+            val existedBefore = if (redisAvailable.get()) {
                 try {
                     incrementViaRedis(token)
                 } catch (ex: Exception) {
@@ -55,11 +55,7 @@ class NewsSpamFilterService(
                 incrementViaDatabase(token, windowStart)
             }
 
-            if (previousCount >= threshold) {
-                return true
-            }
-
-            if (previousCount >= 1) {
+            if (existedBefore) {
                 matchedKeywordCount++
                 if (matchedKeywordCount >= threshold) {
                     return true
@@ -108,22 +104,26 @@ class NewsSpamFilterService(
 
     private fun spamKey(token: String): String = "$spamKeyPrefix$token"
 
-    private suspend fun incrementViaRedis(token: String): Long {
+    private suspend fun incrementViaRedis(token: String): Boolean {
         val key = spamKey(token)
-        val newCount = valueOps.increment(key).awaitSingle()
-        redisTemplate.expire(key, windowTtl).awaitSingleOrNull()
+        val currentValue = valueOps.get(key).awaitSingleOrNull()?.toLongOrNull() ?: 0L
+        val ttlBefore = redisTemplate.getExpire(key).awaitSingleOrNull()
+        valueOps.increment(key).awaitSingle()
+        val shouldSetTtl = ttlBefore == null || ttlBefore.isZero || ttlBefore.isNegative
+        if (shouldSetTtl) {
+            redisTemplate.expire(key, windowTtl).awaitSingleOrNull()
+        }
         spamRepo.upsert(token)
-        return newCount - 1
+        return currentValue > 0
     }
 
-    private suspend fun incrementViaDatabase(token: String, windowStart: LocalDateTime): Long {
+    private suspend fun incrementViaDatabase(token: String, windowStart: LocalDateTime): Boolean {
         val entity = spamRepo.findFirstByKeywordAndCreatedAtAfter(token, windowStart)
-        val previousCount = entity?.count?.toLong() ?: 0L
         spamRepo.upsert(token)
-        return previousCount
+        return entity != null
     }
 
-    private fun tokenize(title: String): List<String> =
+    fun tokenizeTitle(title: String): List<String> =
         title
             .lowercase()
             .replace(Regex("[^\\p{L}\\p{Nd}]+"), " ")
@@ -131,4 +131,6 @@ class NewsSpamFilterService(
             .map { it.trim() }
             .filter { it.length >= 2 }
             .distinct()
+
+    private fun tokenize(title: String): List<String> = tokenizeTitle(title)
 }

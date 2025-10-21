@@ -83,41 +83,26 @@ class NewsProcessingService(
                 }
             }
 
-        val totalFetched = resp.items?.size ?: 0
         val eligibleItems = itemsToProcess.orEmpty()
 
         val summaryWhenEmpty = eligibleItems.isEmpty()
 
-        val resultCounts = if (summaryWhenEmpty) {
-            emptyMap()
+        val dispatchResults = if (summaryWhenEmpty) {
+            emptyList()
         } else {
             coroutineScope {
-                eligibleItems.map { async { processItem(channel, it) } }
+                eligibleItems.map { item ->
+                    val refinedTitle = refiner.refineTitle(item.title)
+                    val tokens = spam.tokenizeTitle(refinedTitle)
+                    async { processItem(channel, item, refinedTitle, tokens) }
+                }
                     .awaitAll()
-                    .groupingBy { it }
-                    .eachCount()
             }
         }
+        val resultCounts = dispatchResults.groupingBy { it.status }.eachCount()
         val sentCount = resultCounts[DispatchStatus.SENT] ?: 0
         val duplicateCount = resultCounts[DispatchStatus.SKIPPED_DUPLICATE] ?: 0
         val spamCount = resultCounts[DispatchStatus.SKIPPED_SPAM] ?: 0
-        val ruleCount = resultCounts[DispatchStatus.SKIPPED_RULE] ?: 0
-        val missingCompanyCount = resultCounts[DispatchStatus.SKIPPED_MISSING_COMPANY] ?: 0
-        val failureCounts = resultCounts.filterKeys {
-            it in setOf(
-                DispatchStatus.FAILED_PERSIST,
-                DispatchStatus.FAILED_LOOKUP,
-                DispatchStatus.FAILED_SLACK,
-                DispatchStatus.FAILED_MISSING_ID
-            )
-        }
-        val failureSummary = if (failureCounts.isEmpty()) {
-            "none"
-        } else {
-            failureCounts.entries
-                .sortedBy { it.key.logKey }
-                .joinToString(", ") { "${it.key.logKey}=${it.value}" }
-        }
 
         // 3. 처리된 마지막 아이템의 시간으로 lastPollTime 업데이트
         if (!summaryWhenEmpty) {
@@ -132,16 +117,15 @@ class NewsProcessingService(
         val summaryMarker = appendEntries(
             mapOf(
                 "channel" to channel.name,
-//                "fetched" to totalFetched,
                 "eligible" to eligibleItems.size,
                 "sent" to sentCount,
                 "duplicateSkips" to duplicateCount,
                 "spamSkips" to spamCount,
-//                "ruleSkips" to ruleCount,
-//                "missingCompanySkips" to missingCompanyCount,
-//                "failureDetails" to failureSummary
             )
         )
+        dispatchResults.forEach { result ->
+            logKeywordEvent(channel, result.status, result.title, result.tokens)
+        }
         logger.info(
             summaryMarker,
             "channel={} eligible={} sent={} duplicateSkips={} spamSkips={}",
@@ -149,7 +133,7 @@ class NewsProcessingService(
             eligibleItems.size,
             sentCount,
             duplicateCount,
-            spamCount,
+            spamCount
         )
     }
 
@@ -205,18 +189,24 @@ class NewsProcessingService(
         ZonedDateTime.parse(dateString, DateTimeFormatter.RFC_1123_DATE_TIME)
             .format(DateTimeFormatter.ofPattern("yyyy년 M월 d일 (EEEE) h:mm:ss a", Locale.KOREAN))
 
-    private suspend fun processItem(channel: NewsChannel, item: Item): DispatchStatus {
+    private data class DispatchResult(
+        val status: DispatchStatus,
+        val title: String,
+        val tokens: List<String>
+    )
+
+    private suspend fun processItem(channel: NewsChannel, item: Item, refinedTitle: String, titleTokens: List<String>): DispatchResult {
         val contextMap = buildMap {
             put("channel", channel.name)
             item.link?.let { put("naver_link", it) }
         }
 
         return withContext(Dispatchers.IO + MDCContext(contextMap)) {
-            val title = refiner.refineTitle(item.title)
+            val title = refinedTitle
             val description = refiner.refineDescription(item.description)
             val companyDomain = refiner.extractCompany(item.link) ?: run {
                 logger.warn(append("reason", "missing_company"), "Unable to extract company from link")
-                return@withContext DispatchStatus.SKIPPED_MISSING_COMPANY
+                return@withContext DispatchResult(DispatchStatus.SKIPPED_MISSING_COMPANY, title, titleTokens)
             }
             val company = newsCompanyService.findOrCreateCompany(companyDomain)
 
@@ -228,19 +218,19 @@ class NewsProcessingService(
                 // 중복 기사 방지
                 if (articleRepo.countNewsArticleByHash(hash) > 0L) {
                     logger.debug(append("reason", "duplicate"), "Article already processed. Skipping.")
-                    return@withContext DispatchStatus.SKIPPED_DUPLICATE
+                    return@withContext DispatchResult(DispatchStatus.SKIPPED_DUPLICATE, title, titleTokens)
                 }
 
                 // 제외 룰 검사
                 if (filter.isExcluded(title, company.name, channel)) {
                     logger.debug(append("reason", "exclusion_rule"), "Article excluded by rule.")
-                    return@withContext DispatchStatus.SKIPPED_RULE
+                    return@withContext DispatchResult(DispatchStatus.SKIPPED_RULE, title, titleTokens)
                 }
 
                 // 스팸(중복 키워드) 검사
                 if (spam.isSpamByTitleTokens(title)) {
                     logger.debug(append("reason", "spam_detected"), "Article classified as spam.")
-                    return@withContext DispatchStatus.SKIPPED_SPAM
+                    return@withContext DispatchResult(DispatchStatus.SKIPPED_SPAM, title, titleTokens)
                 }
 
                 // 기사 저장
@@ -257,7 +247,7 @@ class NewsProcessingService(
                 )
                 if (savedRows <= 0) {
                     logger.warn(append("reason", "persist_failed"), "Failed to insert news article.")
-                    return@withContext DispatchStatus.FAILED_PERSIST
+                    return@withContext DispatchResult(DispatchStatus.FAILED_PERSIST, title, titleTokens)
                 }
 
                 val news = News(
@@ -274,14 +264,14 @@ class NewsProcessingService(
                 val saved = articleRepo.selectNewsArticleByHash(hash)
                 if (saved == null) {
                     logger.warn(append("reason", "lookup_failed"), "Inserted article could not be reloaded.")
-                    return@withContext DispatchStatus.FAILED_LOOKUP
+                    return@withContext DispatchResult(DispatchStatus.FAILED_LOOKUP, title, titleTokens)
                 }
 
                 val sendResult = slack.send(channel, payload)
 
                 val articleId = saved.id ?: run {
                     logger.warn(append("reason", "missing_id"), "Reloaded article entity does not have an id.")
-                    return@withContext DispatchStatus.FAILED_MISSING_ID
+                    return@withContext DispatchResult(DispatchStatus.FAILED_MISSING_ID, title, titleTokens)
                 }
 
                 // 전송 로그
@@ -307,10 +297,30 @@ class NewsProcessingService(
                     )
                 }
 
-                if (sendResult.success) DispatchStatus.SENT else DispatchStatus.FAILED_SLACK
+                if (sendResult.success) {
+                    DispatchResult(DispatchStatus.SENT, title, titleTokens)
+                } else {
+                    DispatchResult(DispatchStatus.FAILED_SLACK, title, titleTokens)
+                }
             } finally {
                 MDC.remove("article_hash")
             }
         }
+    }
+
+    private fun logKeywordEvent(channel: NewsChannel, status: DispatchStatus, title: String, tokens: List<String>) {
+        val shouldLog = when (status) {
+            DispatchStatus.SENT, DispatchStatus.SKIPPED_DUPLICATE, DispatchStatus.SKIPPED_SPAM -> true
+            else -> false
+        }
+        if (!shouldLog) return
+
+        val marker = appendEntries(
+            mapOf(
+                "title" to title,
+                "keywords" to tokens,
+            )
+        )
+        logger.info(marker, "title={} keywords={}", title, tokens.joinToString(","))
     }
 }
