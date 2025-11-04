@@ -22,5 +22,5 @@ services:
 
 networks:
   local-network:
-    name: local-network
     driver: bridge
+    name: resources_local-network
