@@ -17,3 +17,10 @@ services:
     ports:
       - "3579:3579"
     restart: unless-stopped
+    networks:
+      - local-network
+
+networks:
+  local-network:
+    name: local-network
+    driver: bridge
