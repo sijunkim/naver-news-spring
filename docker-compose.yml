@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     environment:
-      SPRING_PROFILES_ACTIVE: local
+#      SPRING_PROFILES_ACTIVE: local
       DB_HOST: mysql
       REDIS_HOST: redis
       ELASTICSEARCH_HOST: elasticsearch
