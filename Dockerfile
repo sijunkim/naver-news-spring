@@ -17,7 +17,6 @@ RUN ./gradlew clean bootJar --no-daemon \
 FROM eclipse-temurin:17-jre-jammy AS runtime
 
 WORKDIR /app
-#ENV SPRING_PROFILES_ACTIVE=local
 
 COPY --from=build /workspace/app.jar /app/app.jar
 

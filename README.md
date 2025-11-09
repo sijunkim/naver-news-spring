@@ -218,6 +218,12 @@ DEVELOP_WEBHOOK_URL=
   - 수집 기사 수, 필터링 드랍 수, 전송 시도/성공/실패 수
   - 재시도 횟수, 레이트리밋 발생 수, API 응답 시간
 
+### 10.1 Logstash 연동 프로필(선택)
+- 기본값은 콘솔 로그만 출력하고 Logstash/Elasticsearch가 없어도 애플리케이션이 문제없이 실행됩니다.
+- ELK를 다시 붙이고 싶다면 `SPRING_PROFILES_ACTIVE`(또는 `--spring.profiles.active`)에 `elk`를 추가하면 됩니다. 예) `SPRING_PROFILES_ACTIVE=local,elk`.
+- `elk` 프로필이 활성화된 경우에만 `LOGSTASH_HOST`, `LOGSTASH_TCP_PORT` 등의 환경 변수를 읽어 TCP 소켓으로 로그를 전송합니다.
+- 구형 시스템에서는 `elk` 프로필을 제외한 채로 애플리케이션만 띄우면 되므로, ELK Docker 컨테이너를 중지해도 부팅이 지연되거나 연결 오류가 발생하지 않습니다.
+
 ---
 
 ## 11. 향후 고도화 로드맵

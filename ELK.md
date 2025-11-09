@@ -1,5 +1,8 @@
 ELK 파이프라인 확인 절차
 
+> 애플리케이션 로깅에서 Logstash 전송이 필요한 경우 `SPRING_PROFILES_ACTIVE`에 `elk`를 포함시켜야 합니다. (예: `SPRING_PROFILES_ACTIVE=local,elk`)
+> 해당 프로필이 꺼져 있으면 콘솔 로그만 남기고 ELK 컨테이너가 없어도 애플리케이션이 정상 동작합니다.
+
 1. 애플리케이션 실행 후 Logstash 연결 확인
     - docker-compose logs logstash로 Logstash가 TCP 포트를 열고 있는지, 애플리케이션에서 접속 성공 로그가 찍히는지 확인합니다.
     - 에러가 있다면 Logstash 파이프라인(app-logs.conf)에서 codec 설정, 포트, 인증 정보를 다시 점검합니다.
