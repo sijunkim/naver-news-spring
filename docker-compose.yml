@@ -1,11 +1,12 @@
 version: "3.8"
 
 services:
-  naver-news-spring:
+  webapp:
+    image: spring-webflux
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: naver-news-spring
+    container_name: naver-news
     env_file:
       - .env
     environment:
