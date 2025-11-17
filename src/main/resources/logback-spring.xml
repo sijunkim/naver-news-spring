@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <springProperty scope="context" name="ELK_ACTIVE" source="elk.active" defaultValue="false"/>
     <springProperty scope="context" name="LOGSTASH_HOST" source="logstash.host" defaultValue="localhost"/>
     <springProperty scope="context" name="LOGSTASH_PORT" source="logstash.tcp-port" defaultValue="5044"/>
     <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="naver-news-spring"/>
@@ -14,23 +15,32 @@
         </encoder>
     </appender>
 
-    <springProfile name="elk">
-        <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-            <destination>${LOGSTASH_HOST}:${LOGSTASH_PORT}</destination>
-            <reconnectionDelay>5000</reconnectionDelay>
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <customFields>{"app":"${APP_NAME}"}</customFields>
-            </encoder>
-        </appender>
-    </springProfile>
+    <if condition='property("ELK_ACTIVE").equalsIgnoreCase("true")'>
+        <then>
+            <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                <destination>${LOGSTASH_HOST}:${LOGSTASH_PORT}</destination>
+                <reconnectionDelay>5000</reconnectionDelay>
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"app":"${APP_NAME}"}</customFields>
+                </encoder>
+            </appender>
+        </then>
+    </if>
 
     <logger name="org.springframework" level="INFO"/>
     <logger name="io.netty" level="INFO"/>
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <springProfile name="elk">
-            <appender-ref ref="LOGSTASH"/>
-        </springProfile>
-    </root>
+    <if condition='property("ELK_ACTIVE").equalsIgnoreCase("true")'>
+        <then>
+            <root level="INFO">
+                <appender-ref ref="CONSOLE"/>
+                <appender-ref ref="LOGSTASH"/>
+            </root>
+        </then>
+        <else>
+            <root level="INFO">
+                <appender-ref ref="CONSOLE"/>
+            </root>
+        </else>
+    </if>
 </configuration>

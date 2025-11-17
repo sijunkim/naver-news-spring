@@ -50,3 +50,6 @@ logstash:
   host: ${LOGSTASH_HOST:localhost}
   tcp-port: ${LOGSTASH_TCP_PORT:5044}
   http-port: ${LOGSTASH_HTTP_PORT:9600}
+
+elk:
+  active: ${ELK_ACTIVE:false}
