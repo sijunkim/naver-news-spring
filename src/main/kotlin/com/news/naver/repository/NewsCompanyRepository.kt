@@ -5,13 +5,10 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.reactive.TransactionalOperator
-import reactor.core.publisher.Mono
 
 @Repository
 class NewsCompanyRepository(
-    private val template: R2dbcEntityTemplate,
-    private val operator: TransactionalOperator
+    private val template: R2dbcEntityTemplate
 ) {
 
     suspend fun findByDomainPrefix(domain: String): NewsCompanyEntity? {

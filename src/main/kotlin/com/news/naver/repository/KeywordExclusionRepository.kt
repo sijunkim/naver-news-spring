@@ -12,16 +12,6 @@ class KeywordExclusionRepository(
     private val template: R2dbcEntityTemplate,
     private val converter: MappingR2dbcConverter
 ) {
-    suspend fun selectKeywordExclusionAllByScope(scope: ExclusionScope): List<KeywordExclusionEntity> {
-        val sql = "SELECT * FROM keyword_exclusion WHERE scope = :scope"
-        return template.databaseClient.sql(sql)
-            .bind("scope", scope.name)
-            .map { row, meta -> converter.read(KeywordExclusionEntity::class.java, row, meta) }
-            .all()
-            .collectList()
-            .awaitSingle()
-    }
-
     suspend fun selectKeywordExclusionAllByScopeIn(scopes: List<ExclusionScope>): List<KeywordExclusionEntity> {
         val sql = "SELECT * FROM keyword_exclusion WHERE scope IN (:scopes)"
         return template.databaseClient.sql(sql)
