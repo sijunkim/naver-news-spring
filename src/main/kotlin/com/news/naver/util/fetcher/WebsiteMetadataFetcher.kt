@@ -1,4 +1,4 @@
-package com.news.naver.service
+package com.news.naver.util.fetcher
 
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory

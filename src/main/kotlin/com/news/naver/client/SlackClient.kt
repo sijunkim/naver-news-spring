@@ -1,5 +1,6 @@
 package com.news.naver.client
 
+import com.news.naver.data.dto.slack.SlackSendResult
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.property.SlackProperties
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -7,12 +8,6 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
-
-data class SlackSendResult(
-    val success: Boolean,
-    val httpStatus: Int?,
-    val body: String?
-)
 
 @Component
 class SlackClient(

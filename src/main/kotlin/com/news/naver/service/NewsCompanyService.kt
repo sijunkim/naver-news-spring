@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class NewsCompanyService(
     private val newsCompanyRepository: NewsCompanyRepository,
-    private val metadataFetcher: WebsiteMetadataFetcher
+    private val metadataFetcher: com.news.naver.util.fetcher.WebsiteMetadataFetcher
 ) {
 
     @Transactional

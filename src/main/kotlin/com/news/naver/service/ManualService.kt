@@ -13,7 +13,7 @@ class ManualService(
     private val newsSpamFilterService: NewsSpamFilterService,
     private val runtimeStateRepository: RuntimeStateRepository,
     private val deliveryRepo: DeliveryLogRepository,
-    private val metadataFetcher: WebsiteMetadataFetcher
+    private val metadataFetcher: com.news.naver.util.fetcher.WebsiteMetadataFetcher
 ) {
 
     suspend fun runDevNewsPoll() {

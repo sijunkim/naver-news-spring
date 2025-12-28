@@ -5,6 +5,6 @@ data class News(
     val originalLink: String?,
     val link: String?,
     val company: String,
-    val description: String,
+    val description: String?,
     val pubDate: String?
 )

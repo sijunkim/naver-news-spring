@@ -1,12 +1,12 @@
-package com.news.naver.service
+package com.news.naver.util.refiner
 
 import java.net.URI
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 
-@Service
+@Component
 class NewsRefinerService {
 
     private val htmlTagRegex = Regex("<[^>]*>")
