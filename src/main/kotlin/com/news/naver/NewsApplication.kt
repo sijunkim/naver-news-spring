@@ -2,6 +2,7 @@ package com.news.naver
 
 import com.news.naver.config.HealthChecker
 import com.news.naver.property.AppProperties
+import com.news.naver.property.ChatGPTProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.property.SlackProperties
 import kotlinx.coroutines.runBlocking
@@ -24,7 +25,8 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableConfigurationProperties(
     AppProperties::class,
     NaverProperties::class,
-    SlackProperties::class
+    SlackProperties::class,
+    ChatGPTProperties::class
 )
 @EnableScheduling
 class NewsApplication {
