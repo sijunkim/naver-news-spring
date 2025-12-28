@@ -1,5 +1,6 @@
 package com.news.naver.repository
 
+import com.news.naver.data.dto.summary.DailyNewsItem
 import com.news.naver.entity.NewsArticleEntity
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -70,42 +71,51 @@ class NewsArticleRepository(
             .awaitSingle()
     }
 
-    suspend fun selectExistingHashes(hashes: Collection<String>): List<String> {
-        if (hashes.isEmpty()) return emptyList()
-        val sql = "SELECT naver_link_hash FROM news_article WHERE naver_link_hash IN (:hashes)"
+    suspend fun deleteAll(): Long {
+        return template.delete(NewsArticleEntity::class.java).all().awaitSingle()
+    }
+
+    /**
+     * 특정 기간 동안 발송된 뉴스를 조회합니다 (일일 요약용)
+     *
+     * @param startDateTime 시작 시간 (포함)
+     * @param endDateTime 종료 시간 (미포함)
+     * @return 발송된 뉴스 목록 (중복 제거됨)
+     */
+    suspend fun selectDeliveredNewsInDateRange(
+        startDateTime: LocalDateTime,
+        endDateTime: LocalDateTime
+    ): List<DailyNewsItem> {
+        val sql = """
+            SELECT
+                na.id AS article_id,
+                na.title,
+                na.summary,
+                MIN(dl.sent_at) AS first_sent_at,
+                GROUP_CONCAT(DISTINCT dl.channel ORDER BY dl.channel SEPARATOR ',') AS channels
+            FROM delivery_log dl
+            INNER JOIN news_article na ON dl.article_id = na.id
+            WHERE dl.status = 'SUCCESS'
+              AND dl.sent_at >= :startDateTime
+              AND dl.sent_at < :endDateTime
+            GROUP BY na.id, na.title, na.summary
+            ORDER BY first_sent_at DESC
+        """.trimIndent()
+
         return template.databaseClient.sql(sql)
-            .bind("hashes", hashes)
-            .map { row, _ -> row.get("naver_link_hash", String::class.java)!! }
+            .bind("startDateTime", startDateTime)
+            .bind("endDateTime", endDateTime)
+            .map { row, _ ->
+                DailyNewsItem(
+                    articleId = (row.get("article_id") as Number).toLong(),
+                    title = row.get("title") as String,
+                    summary = row.get("summary") as String?,
+                    firstSentAt = row.get("first_sent_at") as LocalDateTime,
+                    channels = row.get("channels") as String
+                )
+            }
             .all()
             .collectList()
             .awaitSingle()
-    }
-
-    suspend fun insertBulkArticles(articles: List<NewsArticleEntity>): Long {
-        if (articles.isEmpty()) return 0L
-
-        val sql = """
-            INSERT INTO news_article
-              (naver_link_hash, naver_link, title, summary, company_id, published_at, fetched_at, raw_json)
-            VALUES
-              (?, ?, ?, ?, ?, ?, ?)
-        """.trimIndent()
-
-        val statement = template.databaseClient.sql(sql)
-        articles.forEach { article ->
-            statement
-                .bind(0, article.naverLinkHash)
-                .bind(1, article.title)
-                .bind(2, article.summary)
-                .bind(3, article.companyId)
-                .bind(4, article.publishedAt)
-                .bind(5, article.fetchedAt)
-                .bind(6, article.rawJson)
-        }
-        return statement.fetch().rowsUpdated().awaitSingle()
-    }
-
-    suspend fun deleteAll(): Long {
-        return template.delete(NewsArticleEntity::class.java).all().awaitSingle()
     }
 }
