@@ -155,7 +155,16 @@ CREATE TABLE `spam_keyword_log` (
 - 채널별 Webhook URL: `BREAKING_NEWS_WEBHOOK_URL`, `EXCLUSIVE_NEWS_WEBHOOK_URL`, `DEVELOP_WEBHOOK_URL`
 - 전송 페이로드: `{ "text": "[CHANNEL] 제목\n정규화URL" }`
 
-### 8.3 수동 실행 API
+### 8.3 ChatGPT API (선택 사항)
+- **목적**: 광고성 뉴스, 연예 뉴스, 스포츠 뉴스 자동 필터링
+- **환경변수**: `CHATGPT_API_KEY` (OpenAI API Key)
+- **동작 방식**:
+  - API Key가 설정되지 않은 경우: 모든 뉴스가 정상 발송됩니다
+  - API Key가 설정된 경우: ChatGPT가 뉴스 제목을 분석하여 필터링합니다
+  - API 요청 실패 시: Fallback으로 모든 뉴스가 발송됩니다 (안전한 동작 보장)
+- **로그**: API Key 미설정 시 INFO 레벨로 "ChatGPT filtering disabled - all news will be delivered" 로그 출력
+
+### 8.4 수동 실행 API
 - `POST /manual/news/dev`: 개발 채널용 뉴스 수집을 즉시 실행합니다.
 - `POST /manual/news/breaking`: 속보 수집을 즉시 실행합니다.
 - `POST /manual/news/exclusive`: 단독 수집을 즉시 실행합니다.
@@ -203,11 +212,15 @@ BREAKING_NEWS_WEBHOOK_URL=
 EXCLUSIVE_NEWS_WEBHOOK_URL=
 # 테스트 웹훅 주소
 DEVELOP_WEBHOOK_URL=
+
+# ChatGPT API (선택 사항 - 광고성/연예/스포츠 뉴스 필터링)
+CHATGPT_API_KEY=
 ```
 
 - app.* → AppProperties.kt
 - naver.openapi.* → NaverProperties.kt
 - slack.webhook.* → SlackProperties.kt
+- chatgpt.* → ChatGPTProperties.kt
 
 ---
 
