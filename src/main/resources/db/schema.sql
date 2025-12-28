@@ -265,13 +265,16 @@ CREATE TABLE IF NOT EXISTS spam_keyword_log (
 CREATE TABLE IF NOT EXISTS news_article (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   naver_link_hash CHAR(64) NOT NULL UNIQUE,
+  naver_link VARCHAR(500) NOT NULL,
+  original_link VARCHAR(500) NULL,
   title VARCHAR(500) NOT NULL,
   summary TEXT NULL,
   company_id BIGINT NULL,
   published_at DATETIME NULL,
   fetched_at DATETIME NOT NULL,
   raw_json JSON NULL,
-  INDEX idx_published_at (published_at DESC)
+  INDEX idx_published_at (published_at DESC),
+  FOREIGN KEY (company_id) REFERENCES news_company(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS delivery_log (
@@ -303,7 +306,7 @@ CREATE TABLE IF NOT EXISTS press_exclusion (
 
 CREATE TABLE IF NOT EXISTS runtime_state (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-  `key` VARCHAR(100) UNIQUE KEY,
+  `key` VARCHAR(100) NOT NULL UNIQUE KEY,
   `value` TEXT NOT NULL,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

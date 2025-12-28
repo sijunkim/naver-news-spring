@@ -124,3 +124,7 @@ build/
 
 # NestJS
 nestjs/
+
+# AI Assistant directories
+.claude/
+.codex/

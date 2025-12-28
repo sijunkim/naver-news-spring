@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="NewsApplicationKt" type="JetRunConfigurationType" nameIsGenerated="true">
+  <configuration default="false" name="LOCAL" type="JetRunConfigurationType">
     <option name="ALTERNATIVE_JRE_PATH" value="17" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="com.news.naver.NewsApplicationKt" />
     <module name="naver-news-spring.main" />
-    <shortenClasspath name="MANIFEST" />
     <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
+    <shortenClasspath name="MANIFEST" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
