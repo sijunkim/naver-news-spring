@@ -1,6 +1,7 @@
-package com.news.naver.config
+package com.news.naver.health
 
 import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.Order
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.awaitOne
 import org.springframework.stereotype.Component
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component
  * @property template R2DBC 데이터베이스 작업을 위한 템플릿
  */
 @Component
+@Order(0)
 class DatabaseHealthChecker(
     private val template: R2dbcEntityTemplate
 ) : HealthChecker {

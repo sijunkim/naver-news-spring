@@ -215,6 +215,7 @@ DEVELOP_WEBHOOK_URL=
 
 # ChatGPT API (선택 사항 - 광고성/연예/스포츠 뉴스 필터링)
 CHATGPT_API_KEY=
+CHATGPT_API_URL=https://api.openai.com/v1/chat/completions
 ```
 
 - app.* → AppProperties.kt

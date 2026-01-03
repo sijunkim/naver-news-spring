@@ -14,8 +14,20 @@ class SlackClient(
     private val webClient: WebClient,
     private val props: SlackProperties
 ) {
+
+    /**
+     * 지정된 뉴스 채널로 페이로드를 전송합니다.
+     *
+     * @param channel 뉴스 채널 (BREAKING, EXCLUSIVE, DEV)
+     * @param payload 전송할 데이터 맵
+     * @return SlackSendResult 전송 결과
+     */
     suspend fun send(channel: NewsChannel, payload: Map<String, Any?>): SlackSendResult {
-        val url = props.urlFor(channel)
+        val url = when (channel) {
+            NewsChannel.BREAKING -> props.webhook.breaking
+            NewsChannel.EXCLUSIVE -> props.webhook.exclusive
+            NewsChannel.DEV -> props.webhook.develop
+        }
 
         val resp = webClient.post()
             .uri(url)

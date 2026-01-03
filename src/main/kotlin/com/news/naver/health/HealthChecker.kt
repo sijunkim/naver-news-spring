@@ -1,4 +1,4 @@
-package com.news.naver.config
+package com.news.naver.health
 
 /**
  * 애플리케이션 시작 시 수행되는 공통 헬스체크 인터페이스입니다.

@@ -1,6 +1,6 @@
 package com.news.naver
 
-import com.news.naver.config.HealthChecker
+import com.news.naver.health.HealthChecker
 import com.news.naver.property.AppProperties
 import com.news.naver.property.ChatGPTProperties
 import com.news.naver.property.NaverProperties

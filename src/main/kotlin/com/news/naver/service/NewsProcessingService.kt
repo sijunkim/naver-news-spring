@@ -1,7 +1,7 @@
 package com.news.naver.service
 
 import com.news.naver.client.SlackClient
-import com.news.naver.common.HashUtils
+import com.news.naver.util.hash.HashUtils
 import com.news.naver.data.dto.Item
 import com.news.naver.data.dto.News
 import com.news.naver.data.enum.NewsChannel

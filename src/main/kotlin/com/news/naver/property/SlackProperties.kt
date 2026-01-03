@@ -1,7 +1,6 @@
 package com.news.naver.property
 
 import com.news.naver.data.dto.Webhook
-import com.news.naver.data.enum.NewsChannel
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
@@ -13,10 +12,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 @ConfigurationProperties(prefix = "slack")
 data class SlackProperties(
     val webhook: Webhook
-) {
-    fun urlFor(channel: NewsChannel): String = when (channel) {
-        NewsChannel.BREAKING -> webhook.breaking
-        NewsChannel.EXCLUSIVE -> webhook.exclusive
-        NewsChannel.DEV -> webhook.develop
-    }
-}
+)

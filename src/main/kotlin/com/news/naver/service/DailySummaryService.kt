@@ -1,20 +1,19 @@
 package com.news.naver.service
 
-import com.news.naver.client.ChatGPTClient
 import com.news.naver.client.SlackClient
 import com.news.naver.data.dto.summary.DailyNewsItem
 import com.news.naver.data.enum.NewsChannel
 import com.news.naver.repository.NewsArticleRepository
+import com.news.naver.service.ChatGPTService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Service
 class DailySummaryService(
     private val newsArticleRepository: NewsArticleRepository,
-    private val chatGPTClient: ChatGPTClient,
+    private val chatGPTService: ChatGPTService,
     private val slackClient: SlackClient
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -51,7 +50,7 @@ class DailySummaryService(
 
         // 2. ChatGPT로 요약 생성
         val summary = try {
-            chatGPTClient.generateDailySummary(newsItems)
+            chatGPTService.generateDailySummary(newsItems)
         } catch (e: Exception) {
             logger.error("Failed to generate summary via ChatGPT", e)
             null
@@ -121,13 +120,13 @@ class DailySummaryService(
         }
 
         val message = """
-📊 *일일 뉴스 발송 리포트 ($dateString)*
+            📊 *일일 뉴스 발송 리포트 ($dateString)*
+            
+            ✅ *발송 건수:* ${uniqueArticleCount}건
 
-✅ *발송 건수:* ${uniqueArticleCount}건
-
-$summarySection
-
-$keywordsSection
+            $summarySection
+            
+            $keywordsSection
         """.trimIndent()
 
         val payload = mapOf("text" to message)

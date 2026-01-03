@@ -1,4 +1,4 @@
-package com.news.naver.common
+package com.news.naver.util.hash
 
 import java.net.URI
 import java.security.MessageDigest

@@ -1,33 +1,37 @@
-package com.news.naver.config
+package com.news.naver.health
 
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.Order
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.stereotype.Component
+import java.util.concurrent.TimeUnit
 
 /**
  * Redis 연결 상태를 확인하는 `HealthChecker` 구현입니다.
  * 간단한 GET 요청을 통해 기동 시 Redis 접근 가능 여부를 검증합니다.
  */
 @Component
+@Order(1)
 class RedisHealthChecker(
     private val redisTemplate: ReactiveStringRedisTemplate
 ) : HealthChecker {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val healthKey = "health:redis:check"
 
     /**
-     * Redis에서 테스트 키를 조회하여 연결 성공 여부를 로그로 남깁니다.
-     * 실패 시 예외를 던져 애플리케이션 기동을 중단시킬 수 있습니다.
+     * Redis 서버에 PING 명령을 보내 연결 상태만 확인합니다.
+     * 응답이 없거나 에러가 발생하면 예외를 던져 기동을 중단시킬 수 있습니다.
      */
     override suspend fun check() {
         try {
-            val value = redisTemplate.opsForValue()
-                .get(healthKey)
-                .awaitSingleOrNull()
+            val result = redisTemplate.connectionFactory
+                .reactiveConnection
+                .ping()
+                .awaitSingle()
+                ?: throw IllegalStateException("Redis connection factory is not available")
 
-            logger.info("✅ Redis connection successful, result: {}", value ?: "null")
+            logger.info("✅ Redis PING successful, result: {}", result)
         } catch (e: Exception) {
             logger.error("❌ Redis connection failed", e)
             throw e
