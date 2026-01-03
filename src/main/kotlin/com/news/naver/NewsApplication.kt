@@ -26,7 +26,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
     AppProperties::class,
     NaverProperties::class,
     SlackProperties::class,
-    ChatGPTProperties::class
+    ChatGPTProperties::class,
 )
 @EnableScheduling
 class NewsApplication {
