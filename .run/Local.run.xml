@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Local" type="JetRunConfigurationType">
+    <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="com.news.naver.NewsApplicationKt" />
+    <module name="naver-news-spring.main" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=local" />
+    <shortenClasspath name="MANIFEST" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

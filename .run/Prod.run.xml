@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Kotlin" type="JetRunConfigurationType">
+  <configuration default="false" name="Prod" type="JetRunConfigurationType">
     <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="com.news.naver.NewsApplicationKt" />
