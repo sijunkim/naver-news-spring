@@ -2,6 +2,7 @@ package com.news.naver.property
 
 import com.news.naver.data.dto.Webhook
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.NestedConfigurationProperty
 
 /**
  * Slack 관련 설정을 담는 ConfigurationProperties 클래스입니다.
@@ -11,5 +12,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  */
 @ConfigurationProperties(prefix = "slack")
 data class SlackProperties(
+    @NestedConfigurationProperty
     val webhook: Webhook
 )

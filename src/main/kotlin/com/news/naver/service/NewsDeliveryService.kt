@@ -7,7 +7,7 @@ import com.news.naver.data.dto.delivery.DeliveredNews
 import com.news.naver.data.dto.delivery.FailedNews
 import com.news.naver.data.dto.delivery.FilterStats
 import com.news.naver.data.dto.delivery.NewsDeliveryResult
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

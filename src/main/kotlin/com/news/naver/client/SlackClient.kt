@@ -1,7 +1,7 @@
 package com.news.naver.client
 
 import com.news.naver.data.dto.slack.SlackSendResult
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.property.SlackProperties
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.http.MediaType

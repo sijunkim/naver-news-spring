@@ -5,7 +5,7 @@ import com.news.naver.data.dto.test.SendMessageRequest
 import com.news.naver.data.dto.test.SendMessageResponse
 import com.news.naver.data.dto.test.SendNewsRequest
 import com.news.naver.data.dto.test.SendNewsByChannelRequest
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.service.NewsDeliveryService
 import org.springframework.web.bind.annotation.*
 

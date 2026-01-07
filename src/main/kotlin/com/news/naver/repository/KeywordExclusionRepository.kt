@@ -1,6 +1,6 @@
 package com.news.naver.repository
 
-import com.news.naver.data.enum.ExclusionScope
+import com.news.naver.data.enums.ExclusionScope
 import com.news.naver.entity.KeywordExclusionEntity
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.data.r2dbc.convert.MappingR2dbcConverter

@@ -2,7 +2,7 @@ package com.news.naver.service
 
 import com.news.naver.client.SlackClient
 import com.news.naver.data.dto.summary.DailyNewsItem
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.service.ChatGPTService
 import org.slf4j.LoggerFactory

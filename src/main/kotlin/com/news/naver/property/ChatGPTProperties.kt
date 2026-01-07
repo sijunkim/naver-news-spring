@@ -8,11 +8,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  *
  * @property apiKey ChatGPT API Key
  * @property apiUrl ChatGPT API URL
+ * @property model ChatGPT 모델명 (예: gpt-4o-mini, gpt-4, gpt-3.5-turbo)
+ * @property temperature 응답 창의성 제어 (0.0~2.0, 낮을수록 일관성↑)
+ * @property maxTokens 기본 최대 토큰 수
+ * @property summaryMaxTokens 요약 생성 시 최대 토큰 수
  */
 @ConfigurationProperties(prefix = "chatgpt")
 data class ChatGPTProperties(
     val apiKey: String?,
-    val apiUrl: String
+    val apiUrl: String,
+    val model: String,
+    val temperature: Double,
+    val maxTokens: Int,
+    val summaryMaxTokens: Int
 ) {
     /**
      * API Key가 설정되어 있는지 확인합니다.

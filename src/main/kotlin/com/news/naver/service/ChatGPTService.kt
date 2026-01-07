@@ -26,6 +26,7 @@ class ChatGPTService(
         }
 
         val request = ChatGPTRequest(
+            model = chatGPTProperties.model,
             messages = listOf(
                 ChatGPTMessage(
                     role = "system",
@@ -35,7 +36,9 @@ class ChatGPTService(
                     role = "user",
                     content = buildFilterPrompt(titles)
                 )
-            )
+            ),
+            temperature = chatGPTProperties.temperature,
+            maxTokens = chatGPTProperties.maxTokens
         )
 
         val response = runCatching { chatGPTClient.post(request) }
@@ -59,6 +62,7 @@ class ChatGPTService(
         }
 
         val request = ChatGPTRequest(
+            model = chatGPTProperties.model,
             messages = listOf(
                 ChatGPTMessage(
                     role = "system",
@@ -69,7 +73,8 @@ class ChatGPTService(
                     content = buildSummaryPrompt(newsItems)
                 )
             ),
-            maxTokens = 500
+            temperature = chatGPTProperties.temperature,
+            maxTokens = chatGPTProperties.summaryMaxTokens
         )
 
         val response = runCatching { chatGPTClient.post(request) }
@@ -96,7 +101,6 @@ class ChatGPTService(
             **제외 기준:**
             - 광고성 뉴스: 특정 제품, 서비스, 기업을 홍보하는 내용
             - 연예 뉴스: 연예인, 드라마, 영화, 음악 등 연예계 관련 내용
-            - 스포츠 뉴스: 스포츠 경기, 선수 관련 내용
             
             **뉴스 제목 목록:**
             $numberedTitles
@@ -129,7 +133,7 @@ class ChatGPTService(
     }
 
     private fun buildSummaryPrompt(newsItems: List<DailyNewsItem>): String {
-        val newsList = newsItems.take(20).mapIndexed { index, item ->
+        val newsList = newsItems.take(100).mapIndexed { index, item ->
             val summaryPart = item.summary?.let { " - $it" } ?: ""
             "${index + 1}. ${item.title}$summaryPart"
         }.joinToString("\n")
@@ -137,13 +141,13 @@ class ChatGPTService(
         return """
             다음은 오늘 발송된 뉴스 목록입니다. 이 뉴스들의 공통 주제와 핵심 내용을 3-5문장으로 간결하게 요약해주세요.
             
-            **뉴스 목록 (최대 20개):**
+            **뉴스 목록 (최대 100개):**
             $newsList
             
             **요약 요청 사항:**
-            - 3-5문장으로 간결하게 작성
+            - 5-10문장으로 간결하게 작성
             - 주요 키워드와 핵심 내용 위주로 요약
-            - 200자 이내로 작성
+            - 500자 이내로 작성
             - 불필요한 설명 제외
         """.trimIndent()
     }

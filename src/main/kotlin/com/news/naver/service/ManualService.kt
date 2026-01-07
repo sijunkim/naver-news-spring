@@ -1,6 +1,6 @@
 package com.news.naver.service
 
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.RuntimeStateRepository

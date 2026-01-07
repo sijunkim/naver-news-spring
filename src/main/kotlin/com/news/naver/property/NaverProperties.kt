@@ -1,9 +1,9 @@
 package com.news.naver.property
 
 import com.news.naver.data.dto.OpenApi
-import org.springframework.boot.context.properties.ConfigurationProperties
-
 import com.news.naver.data.dto.Search
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.NestedConfigurationProperty
 
 /**
  * 네이버 API 관련 설정을 담는 ConfigurationProperties 클래스입니다.
@@ -14,6 +14,8 @@ import com.news.naver.data.dto.Search
  */
 @ConfigurationProperties(prefix = "naver")
 data class NaverProperties(
+    @NestedConfigurationProperty
     val openapi: OpenApi,
+    @NestedConfigurationProperty
     val search: Search
 )

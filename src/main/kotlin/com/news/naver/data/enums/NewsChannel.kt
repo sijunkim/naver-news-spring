@@ -1,4 +1,4 @@
-package com.news.naver.data.enum
+package com.news.naver.data.enums
 
 /**
  * 뉴스 채널의 종류를 정의하는 Enum 클래스입니다.

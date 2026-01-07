@@ -2,6 +2,7 @@ package com.news.naver.util.processor
 
 import com.news.naver.client.NaverNewsClient
 import com.news.naver.data.dto.Item
+import com.news.naver.property.NaverProperties
 import com.news.naver.service.ChatGPTService
 import com.news.naver.util.refiner.NewsRefinerService
 import org.slf4j.LoggerFactory
@@ -13,23 +14,18 @@ import java.time.format.DateTimeFormatter
 class NewsItemProcessor(
     private val naverNewsClient: NaverNewsClient,
     private val chatGPTService: ChatGPTService,
-    private val refiner: NewsRefinerService
+    private val refiner: NewsRefinerService,
+    private val naverProperties: NaverProperties
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    companion object {
-        private const val DEFAULT_DISPLAY_COUNT = 30
-        private const val DEFAULT_START_INDEX = 1
-        private const val SORT_BY_DATE = "date"
-    }
-
     suspend fun fetchItems(query: String): List<Item> {
         val resp = naverNewsClient.search(
             query = query,
-            display = DEFAULT_DISPLAY_COUNT,
-            start = DEFAULT_START_INDEX,
-            sort = SORT_BY_DATE
+            display = naverProperties.search.display,
+            start = naverProperties.search.start,
+            sort = naverProperties.search.sort
         )
         return resp.items
             ?.filter { it.title?.contains(query) ?: false }
@@ -55,7 +51,7 @@ class NewsItemProcessor(
             return emptyList()
         }
 
-        val titles = items.mapNotNull { refiner.refineTitle(it.title) }
+        val titles = items.map { refiner.refineTitle(it.title) }
         val filteredTitles = chatGPTService.filterNewsTitles(titles)
         val filteredTitleSet = filteredTitles.toSet()
 

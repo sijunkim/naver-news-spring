@@ -1,7 +1,7 @@
 package com.news.naver.entity
 
-import com.news.naver.data.enum.DeliveryStatus
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.DeliveryStatus
+import com.news.naver.data.enums.NewsChannel
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime

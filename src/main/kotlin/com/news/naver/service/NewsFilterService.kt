@@ -1,7 +1,7 @@
 package com.news.naver.service
 
-import com.news.naver.data.enum.ExclusionScope
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.ExclusionScope
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.repository.KeywordExclusionRepository
 import com.news.naver.repository.PressExclusionRepository
 import org.springframework.stereotype.Service

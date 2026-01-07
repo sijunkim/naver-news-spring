@@ -3,6 +3,8 @@ package com.news.naver
 import com.news.naver.health.HealthChecker
 import com.news.naver.property.AppProperties
 import com.news.naver.property.ChatGPTProperties
+import com.news.naver.property.ElkProperties
+import com.news.naver.property.LogstashProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.property.SlackProperties
 import kotlinx.coroutines.runBlocking
@@ -27,6 +29,8 @@ import org.springframework.scheduling.annotation.EnableScheduling
     NaverProperties::class,
     SlackProperties::class,
     ChatGPTProperties::class,
+    ElkProperties::class,
+    LogstashProperties::class
 )
 @EnableScheduling
 class NewsApplication {

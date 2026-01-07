@@ -4,7 +4,7 @@ import com.news.naver.client.SlackClient
 import com.news.naver.util.hash.HashUtils
 import com.news.naver.data.dto.Item
 import com.news.naver.data.dto.News
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.entity.NewsCompanyEntity
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
@@ -56,8 +56,8 @@ class NewsProcessingService(
      * 채널별 1회 실행 (스케줄러/수동 트리거에서 호출)
      */
     suspend fun runOnce(channel: NewsChannel) {
-        val lastPollTime = loadLastPollTime(channel)
         val items = itemProcessor.fetchItems(channel.query)
+        val lastPollTime = loadLastPollTime(channel)
         val timeFilteredItems = itemProcessor.filterByTime(items, lastPollTime)
         val chatGPTFilteredItems = itemProcessor.filterByChatGPT(timeFilteredItems)
         val dispatchResults = processNewsItems(channel, chatGPTFilteredItems)
@@ -188,18 +188,17 @@ class NewsProcessingService(
         }
 
         return withContext(Dispatchers.IO + MDCContext(contextMap)) {
-            val title = refinedTitle
             val description = refiner.refineDescription(item.description)
 
             // 1. 회사 정보 추출
-            val companyResult = extractCompanyInfo(item, title, titleTokens)
+            val companyResult = extractCompanyInfo(item, refinedTitle, titleTokens)
             if (companyResult is CompanyExtractionResult.Failed) {
                 return@withContext companyResult.dispatchResult
             }
             val company = (companyResult as CompanyExtractionResult.Success).company
 
             // 2. 해시 생성 및 검증
-            val validationResult = validateArticle(item, title, titleTokens, company, channel)
+            val validationResult = validateArticle(item, refinedTitle, titleTokens, company, channel)
             if (validationResult is ValidationResult.Failed) {
                 return@withContext validationResult.dispatchResult
             }
@@ -208,14 +207,14 @@ class NewsProcessingService(
             MDC.put("article_hash", hash)
             try {
                 // 3. 기사 저장
-                val saveResult = saveArticle(item, title, description, company, hash)
+                val saveResult = saveArticle(item, refinedTitle, description, company, hash)
                 if (saveResult is SaveResult.Failed) {
                     return@withContext saveResult.dispatchResult
                 }
                 val articleId = (saveResult as SaveResult.Success).articleId
 
                 // 4. 슬랙 전송 및 로깅
-                val deliveryResult = deliverToSlack(channel, item, title, description, company, articleId)
+                val deliveryResult = deliverToSlack(channel, item, refinedTitle, description, company, articleId)
                 deliveryResult
             } finally {
                 MDC.remove("article_hash")

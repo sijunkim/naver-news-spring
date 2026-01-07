@@ -1,37 +1,38 @@
 server:
-  port: ${APP_PORT:3579}
+  port: ${APP_PORT}
 
 spring:
   config:
     import: optional:file:.env[.properties]
   r2dbc:
-    url: r2dbc:pool:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_DATABASE:naver_news}
-    username: ${DB_USER:kimsijun}
-    password: ${DB_PASSWORD:1234}
-    initialization-mode: always
+    url: r2dbc:pool:mysql://${DB_HOST}:${DB_PORT}/${DB_DATABASE}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      username: ${REDIS_USERNAME:}
-      password: ${REDIS_PASSWORD:sijunkim}
-      timeout: ${REDIS_TIMEOUT:5000ms}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      timeout: ${REDIS_TIMEOUT}
 
 app:
   poll:
-    interval-seconds: ${POLL_INTERVAL_SECONDS:60}
+    interval-seconds: ${POLL_INTERVAL_SECONDS}
   duplicate:
-    threshold: ${DUPLICATED_COUNT:5}
+    threshold: ${DUPLICATED_COUNT}
+  daily-summary:
+    cron: ${DAILY_SUMMARY_CRON}
 
 naver:
   openapi:
-    url: ${NAVER_OPENAPI_URL:https://openapi.naver.com/v1/search/news.json}
+    url: ${NAVER_OPENAPI_URL}
     client-id: ${NAVER_CLIENT_ID}
     client-secret: ${NAVER_CLIENT_SECRET}
   search:
-    display: ${NAVER_SEARCH_DISPLAY:30}
-    start: ${NAVER_SEARCH_START:1}
-    sort: ${NAVER_SEARCH_SORT:date}
+    display: ${NAVER_SEARCH_DISPLAY}
+    start: ${NAVER_SEARCH_START}
+    sort: ${NAVER_SEARCH_SORT}
 
 slack:
   webhook:
@@ -39,21 +40,17 @@ slack:
     exclusive: ${EXCLUSIVE_NEWS_WEBHOOK_URL}
     develop: ${DEVELOP_WEBHOOK_URL}
 
-elasticsearch:
-  host: ${ELASTICSEARCH_HOST:localhost}
-  port: ${ELASTICSEARCH_PORT:9200}
-  scheme: ${ELASTICSEARCH_SCHEME:http}
-  username: ${ELASTICSEARCH_USERNAME:elastic}
-  password: ${ELASTICSEARCH_PASSWORD:changeme}
-
 logstash:
-  host: ${LOGSTASH_HOST:localhost}
-  tcp-port: ${LOGSTASH_TCP_PORT:5044}
-  http-port: ${LOGSTASH_HTTP_PORT:9600}
+  host: ${LOGSTASH_HOST}
+  tcp-port: ${LOGSTASH_TCP_PORT}
 
 elk:
-  active: ${ELK_ACTIVE:false}
+  active: ${ELK_ACTIVE}
 
 chatgpt:
-  api-key: ${CHATGPT_API_KEY:}
-  api-url: ${CHATGPT_API_URL:https://api.openai.com/v1/chat/completions}
+  api-key: ${CHATGPT_API_KEY}
+  api-url: ${CHATGPT_API_URL}
+  model: ${CHATGPT_MODEL}
+  temperature: ${CHATGPT_TEMPERATURE}
+  max-tokens: ${CHATGPT_MAX_TOKENS}
+  summary-max-tokens: ${CHATGPT_SUMMARY_MAX_TOKENS}

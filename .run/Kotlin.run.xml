@@ -1,11 +1,10 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Kotlin" type="JetRunConfigurationType">
-    <option name="ALTERNATIVE_JRE_PATH" value="temurin-17 (WSL)" />
+    <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="com.news.naver.NewsApplicationKt" />
     <module name="naver-news-spring.main" />
     <shortenClasspath name="MANIFEST" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

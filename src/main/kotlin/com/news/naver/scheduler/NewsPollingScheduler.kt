@@ -1,7 +1,7 @@
 package com.news.naver.scheduler
 
 import com.news.naver.data.constant.StringConstants
-import com.news.naver.data.enum.NewsChannel
+import com.news.naver.data.enums.NewsChannel
 import com.news.naver.property.AppProperties
 import com.news.naver.service.NewsProcessingService
 import kotlinx.coroutines.async

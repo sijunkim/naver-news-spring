@@ -3,10 +3,10 @@ package com.news.naver.data.dto.chatgpt
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class ChatGPTUsage(
-    @JsonProperty("prompt_tokens")
+    @field:JsonProperty("prompt_tokens")
     val promptTokens: Int,
-    @JsonProperty("completion_tokens")
+    @field:JsonProperty("completion_tokens")
     val completionTokens: Int,
-    @JsonProperty("total_tokens")
+    @field:JsonProperty("total_tokens")
     val totalTokens: Int
 )
