@@ -1,5 +1,6 @@
 package com.news.naver.entity
 
+import com.news.naver.util.DateTimeUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
@@ -43,7 +44,7 @@ data class NewsArticleEntity(
     val publishedAt: LocalDateTime?,
 
     @Column("fetched_at")
-    val fetchedAt: LocalDateTime = LocalDateTime.now(),
+    val fetchedAt: LocalDateTime = DateTimeUtils.now(),
 
     @Column("raw_json")
     val rawJson: String?

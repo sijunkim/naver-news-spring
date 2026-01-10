@@ -1,7 +1,6 @@
 package com.news.naver.service
 
 import com.news.naver.client.SlackClient
-import com.news.naver.util.hash.HashUtils
 import com.news.naver.data.dto.Item
 import com.news.naver.data.dto.News
 import com.news.naver.data.enums.NewsChannel
@@ -9,6 +8,8 @@ import com.news.naver.entity.NewsCompanyEntity
 import com.news.naver.repository.DeliveryLogRepository
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.repository.RuntimeStateRepository
+import com.news.naver.util.DateTimeUtils
+import com.news.naver.util.hash.HashUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -297,8 +298,8 @@ class NewsProcessingService(
             title = title,
             summary = description,
             companyId = company.id,
-            publishedAt = LocalDateTime.now(),
-            fetchedAt = LocalDateTime.now(),
+            publishedAt = DateTimeUtils.now(),
+            fetchedAt = DateTimeUtils.now(),
             rawJson = null
         )
 
@@ -354,7 +355,7 @@ class NewsProcessingService(
             channel = channel.name,
             status = if (sendResult.success) "SUCCESS" else "FAILED",
             httpStatus = sendResult.httpStatus,
-            sentAt = LocalDateTime.now(),
+            sentAt = DateTimeUtils.now(),
             responseBody = sendResult.body
         )
 

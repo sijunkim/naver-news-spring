@@ -1,6 +1,7 @@
 package com.news.naver.entity
 
 import com.news.naver.data.enums.ExclusionScope
+import com.news.naver.util.DateTimeUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
@@ -20,6 +21,6 @@ data class KeywordExclusionEntity(
     val id: Long? = null,
     val scope: ExclusionScope,
     val keyword: String,
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = DateTimeUtils.now()
 )
 

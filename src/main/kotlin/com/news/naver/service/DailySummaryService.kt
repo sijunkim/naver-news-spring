@@ -5,6 +5,7 @@ import com.news.naver.data.dto.summary.DailyNewsItem
 import com.news.naver.data.enums.NewsChannel
 import com.news.naver.repository.NewsArticleRepository
 import com.news.naver.service.ChatGPTService
+import com.news.naver.util.atStartOfDayKST
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -37,8 +38,8 @@ class DailySummaryService(
         logger.info("Generating daily summary for date: $date")
 
         // 1. 해당 날짜의 발송 뉴스 조회
-        val startDateTime = date.atStartOfDay()
-        val endDateTime = date.plusDays(1).atStartOfDay()
+        val startDateTime = date.atStartOfDayKST()
+        val endDateTime = date.plusDays(1).atStartOfDayKST()
         val newsItems = newsArticleRepository.selectDeliveredNewsInDateRange(startDateTime, endDateTime)
 
         if (newsItems.isEmpty()) {
@@ -56,8 +57,8 @@ class DailySummaryService(
             null
         }
 
-        // 3. 키워드 TOP 10 추출
-        val topKeywords = extractTopKeywords(newsItems, 10)
+        // 3. 키워드 TOP 20 추출
+        val topKeywords = extractTopKeywords(newsItems, 20)
 
         // 4. Slack 알림 발송
         sendDailySummary(date, summary, topKeywords, newsItems.size)
@@ -93,7 +94,7 @@ class DailySummaryService(
      *
      * @param date 대상 날짜
      * @param summary ChatGPT 요약 (null이면 "요약 생성 실패")
-     * @param topKeywords TOP 10 키워드
+     * @param topKeywords TOP 20 키워드
      * @param uniqueArticleCount 고유 뉴스 수
      */
     private suspend fun sendDailySummary(
@@ -114,9 +115,9 @@ class DailySummaryService(
             val keywordList = topKeywords.mapIndexed { index, (keyword, count) ->
                 "${index + 1}. $keyword (${count}회)"
             }.joinToString("\n")
-            "🔑 *TOP 10 키워드:*\n$keywordList"
+            "🔑 *TOP 20 키워드:*\n$keywordList"
         } else {
-            "🔑 *TOP 10 키워드:*\n키워드 없음"
+            "🔑 *TOP 20 키워드:*\n키워드 없음"
         }
 
         val message = """

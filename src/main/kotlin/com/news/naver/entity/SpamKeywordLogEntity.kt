@@ -1,5 +1,6 @@
 package com.news.naver.entity
 
+import com.news.naver.util.DateTimeUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
@@ -18,6 +19,6 @@ data class SpamKeywordLogEntity(
     val id: Long? = null,
     val keyword: String,
     var count: Int = 1,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val createdAt: LocalDateTime = DateTimeUtils.now(),
     val updatedAt: LocalDateTime? = null
 )

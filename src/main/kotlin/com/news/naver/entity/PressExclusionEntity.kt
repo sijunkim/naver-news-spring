@@ -1,5 +1,6 @@
 package com.news.naver.entity
 
+import com.news.naver.util.DateTimeUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
@@ -17,5 +18,5 @@ data class PressExclusionEntity(
     @Id
     val id: Long? = null,
     val pressName: String,
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = DateTimeUtils.now()
 )

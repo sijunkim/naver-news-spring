@@ -8,21 +8,31 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.springframework.core.env.Environment
-import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.scheduling.annotation.SchedulingConfigurer
+import org.springframework.scheduling.config.ScheduledTaskRegistrar
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 @Component
 class NewsPollingScheduler(
-    private val props: AppProperties,
+    private val appProperties: AppProperties,
     private val service: NewsProcessingService,
     private val environment: Environment
-) {
+) : SchedulingConfigurer {
+
+    override fun configureTasks(taskRegistrar: ScheduledTaskRegistrar) {
+        taskRegistrar.addFixedDelayTask(
+            Runnable { poll() },
+            Duration.ofSeconds(appProperties.poll.intervalSeconds)
+        )
+    }
+
     /**
-     * 기본 60초 주기. 채널별 병렬 처리.
-     * Dev/Prod 분기는 Spring Profile로 제어하는 것을 권장.
+     * 설정된 주기로 뉴스 폴링을 수행합니다.
+     * 채널별 병렬 처리.
+     * Dev/Prod 분기는 Spring Profile로 제어.
      */
-    @Scheduled(fixedDelayString = "\${app.poll.intervalSeconds:60}000")
-    fun poll() = runBlocking {
+    private fun poll() = runBlocking {
         val channelsToPoll = if (environment.activeProfiles.contains(StringConstants.PROFILE_LOCAL)) {
             listOf(NewsChannel.DEV)
         } else {

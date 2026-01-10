@@ -8,6 +8,7 @@ import com.news.naver.data.dto.delivery.FailedNews
 import com.news.naver.data.dto.delivery.FilterStats
 import com.news.naver.data.dto.delivery.NewsDeliveryResult
 import com.news.naver.data.enums.NewsChannel
+import com.news.naver.util.DateTimeUtils
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -121,7 +122,7 @@ class NewsDeliveryService(
      * 임의의 메시지를 슬랙으로 전송합니다 (테스트용)
      */
     suspend fun sendTestMessage(channel: NewsChannel, message: String): Boolean {
-        val now = ZonedDateTime.now()
+        val now = DateTimeUtils.nowZoned()
         val formattedDate = slackFormatter.formatKoreanDateTime(
             now.format(DateTimeFormatter.RFC_1123_DATE_TIME)
         )

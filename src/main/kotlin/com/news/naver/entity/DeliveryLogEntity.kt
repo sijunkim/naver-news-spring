@@ -2,6 +2,7 @@ package com.news.naver.entity
 
 import com.news.naver.data.enums.DeliveryStatus
 import com.news.naver.data.enums.NewsChannel
+import com.news.naver.util.DateTimeUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
@@ -26,6 +27,6 @@ data class DeliveryLogEntity(
     val channel: NewsChannel,
     val status: DeliveryStatus,
     val httpStatus: Int?,
-    val sentAt: LocalDateTime = LocalDateTime.now(),
+    val sentAt: LocalDateTime = DateTimeUtils.now(),
     val responseBody: String?
 )

@@ -24,7 +24,7 @@ class SlackMessageFormatter {
                     "type" to "section",
                     "text" to mapOf(
                         "type" to "plain_text",
-                        "text" to (news.description ?: "내용없음"),
+                        "text" to news.description.orEmpty().ifBlank { "내용없음" },
                         "emoji" to true
                     )
                 ),

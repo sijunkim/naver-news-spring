@@ -96,15 +96,18 @@ class ChatGPTService(
         val numberedTitles = titles.mapIndexed { index, title -> "${index + 1}. $title" }.joinToString("\n")
 
         return """
-            다음은 뉴스 제목 목록입니다. 각 제목을 검토하여 광고성 뉴스나 연예 뉴스를 제외하고, 유효한 뉴스만 선택해주세요.
-            
+            다음은 뉴스 제목 목록입니다. 각 제목을 검토하여 연예 뉴스만 제외하고, 유효한 뉴스를 선택해주세요.
+
             **제외 기준:**
-            - 광고성 뉴스: 특정 제품, 서비스, 기업을 홍보하는 내용
-            - 연예 뉴스: 연예인, 드라마, 영화, 음악 등 연예계 관련 내용
-            
+            - 연예 뉴스: 연예인, 드라마, 영화, 음악, K-POP 등 연예계 관련 내용
+
+            **포함 기준:**
+            - 정치, 경제, 사회, 과학, 기술, 스포츠 등 모든 일반 뉴스
+            - 광고성 뉴스도 포함
+
             **뉴스 제목 목록:**
             $numberedTitles
-            
+
             **응답 형식:**
             유효한 뉴스의 번호만 쉼표로 구분하여 나열해주세요. 예: 1,3,5,7
             번호만 응답하고 다른 설명은 포함하지 마세요.
@@ -133,21 +136,22 @@ class ChatGPTService(
     }
 
     private fun buildSummaryPrompt(newsItems: List<DailyNewsItem>): String {
-        val newsList = newsItems.take(100).mapIndexed { index, item ->
+        val newsList = newsItems.mapIndexed { index, item ->
             val summaryPart = item.summary?.let { " - $it" } ?: ""
             "${index + 1}. ${item.title}$summaryPart"
         }.joinToString("\n")
 
         return """
-            다음은 오늘 발송된 뉴스 목록입니다. 이 뉴스들의 공통 주제와 핵심 내용을 3-5문장으로 간결하게 요약해주세요.
-            
-            **뉴스 목록 (최대 100개):**
+            다음은 오늘 발송된 모든 뉴스 목록입니다. 이 뉴스들을 주제별로 분류하고, 중복된 내용을 제거하여 핵심 내용을 요약해주세요.
+
+            **뉴스 목록 (총 ${newsItems.size}개):**
             $newsList
-            
+
             **요약 요청 사항:**
-            - 5-10문장으로 간결하게 작성
-            - 주요 키워드와 핵심 내용 위주로 요약
-            - 500자 이내로 작성
+            - 주제별로 그룹화하여 요약 (예: 정치, 경제, 사회, 기술, 스포츠 등)
+            - 중복되거나 유사한 뉴스는 하나로 통합
+            - 각 주제별로 2-3문장으로 핵심 내용 요약
+            - 전체 500자 이내로 작성
             - 불필요한 설명 제외
         """.trimIndent()
     }
