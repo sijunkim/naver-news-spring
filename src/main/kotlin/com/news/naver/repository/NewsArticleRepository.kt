@@ -10,6 +10,7 @@ import org.springframework.data.r2dbc.core.delete
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
+import com.news.naver.util.toDbString
 
 @Repository
 class NewsArticleRepository(
@@ -54,8 +55,8 @@ class NewsArticleRepository(
             .bind("title", title)
             .bind("summary", summary)
             .bind("companyId", companyId)
-            .bind("publishedAt", publishedAt)
-            .bind("fetchedAt", fetchedAt)
+            .bind("publishedAt", publishedAt?.toDbString())
+            .bind("fetchedAt", fetchedAt.toDbString())
             .bind("rawJson", rawJson)
             .fetch()
             .rowsUpdated()
@@ -103,8 +104,8 @@ class NewsArticleRepository(
         """.trimIndent()
 
         return template.databaseClient.sql(sql)
-            .bind("startDateTime", startDateTime)
-            .bind("endDateTime", endDateTime)
+            .bind("startDateTime", startDateTime.toDbString())
+            .bind("endDateTime", endDateTime.toDbString())
             .map { row, _ ->
                 DailyNewsItem(
                     articleId = (row.get("article_id") as Number).toLong(),

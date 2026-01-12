@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * KST(한국 표준시, Asia/Seoul) 기준 날짜/시간 유틸리티
@@ -69,4 +70,31 @@ object DateTimeUtils {
  */
 fun LocalDate.atStartOfDayKST(): LocalDateTime {
     return this.atStartOfDay(DateTimeUtils.KST).toLocalDateTime()
+}
+
+/**
+ * LocalDateTime을 데이터베이스 바인딩용 문자열로 변환
+ *
+ * R2DBC에서 LocalDateTime을 직접 바인딩하면 타임존 정보가 손실되어
+ * MySQL이 UTC로 해석하는 문제가 발생합니다. 이 함수는 LocalDateTime을
+ * MySQL이 이해할 수 있는 문자열 형식으로 변환하여 타임존 손실을 방지합니다.
+ *
+ * ## 사용 예시:
+ * ```kotlin
+ * val now = DateTimeUtils.now()
+ * template.databaseClient.sql("INSERT INTO table (created_at) VALUES (:createdAt)")
+ *     .bind("createdAt", now.toDbString())  // "2026-01-10 14:30:00"
+ *     .fetch()
+ * ```
+ *
+ * ## 주의사항:
+ * - R2DBC의 .bind() 메서드에서 LocalDateTime을 직접 사용하지 말 것
+ * - 반드시 .toDbString()을 사용하여 문자열로 변환 후 바인딩
+ * - MySQL session timezone이 KST(+09:00)로 설정되어 있어야 함
+ *
+ * @receiver LocalDateTime 변환할 날짜시간 (KST 기준)
+ * @return MySQL 호환 문자열 형식 "yyyy-MM-dd HH:mm:ss"
+ */
+fun LocalDateTime.toDbString(): String {
+    return this.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 }

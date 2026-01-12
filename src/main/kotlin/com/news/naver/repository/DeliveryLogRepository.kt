@@ -8,6 +8,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
+import com.news.naver.util.toDbString
 
 @Repository
 class DeliveryLogRepository(
@@ -34,7 +35,7 @@ class DeliveryLogRepository(
             .bind("channel", channel)
             .bind("status", status)
             .bind("httpStatus", httpStatus)
-            .bind("sentAt", sentAt)
+            .bind("sentAt", sentAt.toDbString())
             .bind("responseBody", responseBody)
             .fetch()
             .rowsUpdated()

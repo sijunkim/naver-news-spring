@@ -6,6 +6,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.awaitSingleOrNull
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
+import com.news.naver.util.toDbString
 
 @Repository
 class SpamKeywordLogRepository(
@@ -21,7 +22,7 @@ class SpamKeywordLogRepository(
         """.trimIndent()
         return template.databaseClient.sql(sql)
             .bind("keyword", keyword)
-            .bind("updated_at", updatedAt)
+            .bind("updated_at", updatedAt.toDbString())
             .map { row, _ ->
                 SpamKeywordLogEntity(
                     id = row.get("id", Long::class.java)!!,
