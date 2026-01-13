@@ -7,7 +7,9 @@ import com.news.naver.data.dto.test.SendNewsRequest
 import com.news.naver.data.dto.test.SendNewsByChannelRequest
 import com.news.naver.data.enums.NewsChannel
 import com.news.naver.service.NewsDeliveryService
+import com.news.naver.service.DailySummaryService
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDate
 
 /**
  * 테스트용 API 컨트롤러
@@ -18,7 +20,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/test")
 class TestController(
-    private val newsDeliveryService: NewsDeliveryService
+    private val newsDeliveryService: NewsDeliveryService,
+    private val dailySummaryService: DailySummaryService
 ) {
 
     /**
@@ -105,5 +108,35 @@ class TestController(
             maxItems = request.maxItems,
             lastPollTime = null
         )
+    }
+
+    /**
+     * 특정 날짜의 일일 요약을 생성하여 Slack으로 전송합니다 (테스트용)
+     *
+     * 예시:
+     * ```
+     * curl -X POST "http://localhost:3579/api/test/daily-summary?date=2026-01-11"
+     * ```
+     */
+    @PostMapping("/daily-summary")
+    suspend fun testDailySummary(
+        @RequestParam date: String
+    ): Map<String, Any> {
+        return try {
+            val targetDate = LocalDate.parse(date)
+            dailySummaryService.generateAndSendDailySummary(targetDate)
+
+            mapOf(
+                "success" to true,
+                "message" to "일일 요약이 성공적으로 생성되어 Slack으로 전송되었습니다.",
+                "date" to date
+            )
+        } catch (e: Exception) {
+            mapOf(
+                "success" to false,
+                "message" to "일일 요약 생성 실패: ${e.message}",
+                "date" to date
+            )
+        }
     }
 }

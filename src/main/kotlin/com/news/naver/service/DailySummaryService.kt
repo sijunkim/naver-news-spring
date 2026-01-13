@@ -122,11 +122,11 @@ class DailySummaryService(
 
         val message = """
             📊 *일일 뉴스 발송 리포트 ($dateString)*
-            
+
             ✅ *발송 건수:* ${uniqueArticleCount}건
 
             $summarySection
-            
+
             $keywordsSection
         """.trimIndent()
 
