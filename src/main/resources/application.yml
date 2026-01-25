@@ -17,12 +17,8 @@ spring:
       timeout: ${REDIS_TIMEOUT}
 
 app:
-  poll:
-    interval-seconds: ${POLL_INTERVAL_SECONDS}
   duplicate:
     threshold: ${DUPLICATED_COUNT}
-  daily-summary:
-    cron: ${DAILY_SUMMARY_CRON}
 
 naver:
   openapi:
