@@ -44,6 +44,7 @@ elk:
   active: ${ELK_ACTIVE}
 
 chatgpt:
+  enabled: ${CHATGPT_ENABLED:true}
   api-key: ${CHATGPT_API_KEY}
   api-url: ${CHATGPT_API_URL}
   model: ${CHATGPT_MODEL}
