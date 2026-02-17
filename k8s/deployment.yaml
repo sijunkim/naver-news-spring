@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: naver-news
-        image: ghcr.io/sijunkim/naver-news-spring:master-cb69d17
+        image: ghcr.io/sijunkim/naver-news-spring:master-404b72c
         env:
         - name: APP_PORT
           value: "3579"
