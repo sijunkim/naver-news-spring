@@ -6,9 +6,12 @@ ENV GRADLE_USER_HOME=/workspace/.gradle
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle.kts settings.gradle.kts ./
-COPY src src
 
 RUN chmod +x gradlew
+
+RUN ./gradlew dependencies --no-daemon
+
+COPY src src
 
 RUN ./gradlew clean bootJar --no-daemon \
   && find build/libs -name "*-plain.jar" -delete \
