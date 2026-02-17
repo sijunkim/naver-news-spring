@@ -15,6 +15,13 @@ class ChatGPTService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Filters the provided list of news titles to exclude specific categories such as entertainment news.
+     * Uses a ChatGPT API for filtering logic if enabled.
+     *
+     * @param titles the list of news titles to filter
+     * @return a list of filtered news titles; if filtering is disabled or fails, returns the original titles
+     */
     suspend fun filterNewsTitles(titles: List<String>): List<String> {
         if (!chatGPTProperties.isEnabled()) {
             logger.info("ChatGPT filtering disabled - all news will be delivered")
