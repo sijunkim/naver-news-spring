@@ -1,6 +1,19 @@
 server:
   port: ${APP_PORT}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 spring:
   config:
     import: optional:file:.env[.properties]

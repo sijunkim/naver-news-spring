@@ -27,11 +27,13 @@ repositories {
 
 dependencies {
 	implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 	implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 	implementation("org.codehaus.janino:janino")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
