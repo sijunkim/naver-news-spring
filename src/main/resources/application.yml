@@ -9,6 +9,9 @@ management:
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: naver-news
   prometheus:
     metrics:
       export:
