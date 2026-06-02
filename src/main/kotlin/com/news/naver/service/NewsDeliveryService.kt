@@ -60,15 +60,15 @@ class NewsDeliveryService(
         val timeFilteredItems = itemProcessor.filterByTime(items, lastPollTime)
         val timeFilteredCount = items.size - timeFilteredItems.size
 
-        // 3. ChatGPT 필터링
-        val chatGptFilteredItems = itemProcessor.filterByChatGPT(timeFilteredItems)
-        val chatGptFilteredCount = timeFilteredItems.size - chatGptFilteredItems.size
+        // 3. LLM 필터링
+        val llmFilteredItems = itemProcessor.filterByLLM(timeFilteredItems)
+        val llmFilteredCount = timeFilteredItems.size - llmFilteredItems.size
 
         // 4. 최대 개수 제한
         val limitedItems = if (maxItems != null && maxItems > 0) {
-            chatGptFilteredItems.take(maxItems)
+            llmFilteredItems.take(maxItems)
         } else {
-            chatGptFilteredItems
+            llmFilteredItems
         }
 
         // 5. 뉴스 전송 (병렬 처리)
@@ -109,7 +109,7 @@ class NewsDeliveryService(
             totalFetched = items.size,
             filtered = FilterStats(
                 timeFiltered = timeFilteredCount,
-                chatGptFiltered = chatGptFilteredCount,
+                llmFiltered = llmFilteredCount,
                 ruleFiltered = ruleFilteredCount,
                 spamFiltered = spamFilteredCount
             ),

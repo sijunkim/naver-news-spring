@@ -46,7 +46,7 @@ class NewsProcessingService(
         SKIPPED_RULE("rule_excluded"),
         SKIPPED_SPAM("spam"),
         SKIPPED_MISSING_COMPANY("missing_company"),
-        SKIPPED_CHATGPT("chatgpt_filtered"),
+        SKIPPED_LLM("llm_filtered"),
         FAILED_PERSIST("persist_failed"),
         FAILED_LOOKUP("lookup_failed"),
         FAILED_SLACK("slack_failed"),
@@ -60,11 +60,39 @@ class NewsProcessingService(
         val items = itemProcessor.fetchItems(channel.query)
         val lastPollTime = loadLastPollTime(channel)
         val timeFilteredItems = itemProcessor.filterByTime(items, lastPollTime)
-        val chatGPTFilteredItems = itemProcessor.filterByChatGPT(timeFilteredItems)
-        val dispatchResults = processNewsItems(channel, chatGPTFilteredItems)
 
-        updateLastPollTime(channel, chatGPTFilteredItems)
-        logProcessingResults(channel, chatGPTFilteredItems, dispatchResults)
+        // DB 중복 체크를 LLM 호출 전에 선행. 이미 처리된 기사는 LLM에 보내지 않아
+        // 무료 quota/토큰 낭비를 줄인다. processItem 안의 중복 체크는 race
+        // condition 안전망으로 그대로 유지.
+        val novelItems = filterAlreadyProcessed(timeFilteredItems)
+        val llmFilteredItems = itemProcessor.filterByLLM(novelItems)
+
+        val dispatchResults = processNewsItems(channel, llmFilteredItems)
+
+        updateLastPollTime(channel, llmFilteredItems)
+        logProcessingResults(channel, llmFilteredItems, dispatchResults)
+    }
+
+    /**
+     * 이미 DB에 저장된 (= 발송 완료된) 기사를 미리 거른다.
+     *
+     * 기존 hash 공식 sha256(normalizedUrl + companyId) 와 동일하게 계산한다.
+     * companyId 가 필요하므로 [newsCompanyService.findOrCreateCompany] 를 호출하지만,
+     * 같은 회사 호출은 자주 반복되므로 비용은 낮다 (회사 테이블은 천천히 증가).
+     *
+     * 회사 추출 실패 등으로 hash를 계산할 수 없는 아이템은 LLM 단계로 통과시켜
+     * 이후 [processItem] 의 정상 경로에서 SKIPPED_MISSING_COMPANY 등으로 처리되게 한다.
+     */
+    private suspend fun filterAlreadyProcessed(items: List<Item>): List<Item> {
+        if (items.isEmpty()) return emptyList()
+        return items.filter { item ->
+            val companyDomain = refiner.extractCompany(item.link) ?: return@filter true
+            val company = runCatching { newsCompanyService.findOrCreateCompany(companyDomain) }
+                .getOrNull() ?: return@filter true
+            val normalizedUrl = HashUtils.normalizeUrl(item.link)
+            val hash = HashUtils.sha256(normalizedUrl + company.id)
+            articleRepo.countNewsArticleByHash(hash) == 0L
+        }
     }
 
     /**
@@ -141,7 +169,7 @@ class NewsProcessingService(
         val sentCount = resultCounts[DispatchStatus.SENT] ?: 0
         val duplicateCount = resultCounts[DispatchStatus.SKIPPED_DUPLICATE] ?: 0
         val spamCount = resultCounts[DispatchStatus.SKIPPED_SPAM] ?: 0
-        val chatGPTFilteredCount = resultCounts[DispatchStatus.SKIPPED_CHATGPT] ?: 0
+        val llmFilteredCount = resultCounts[DispatchStatus.SKIPPED_LLM] ?: 0
 
         val summaryMarker = appendEntries(
             mapOf(
@@ -150,7 +178,7 @@ class NewsProcessingService(
                 "sent" to sentCount,
                 "duplicateSkips" to duplicateCount,
                 "spamSkips" to spamCount,
-                "chatgptSkips" to chatGPTFilteredCount
+                "llmSkips" to llmFilteredCount
             )
         )
 
@@ -160,13 +188,13 @@ class NewsProcessingService(
 
         logger.info(
             summaryMarker,
-            "channel={} eligible={} sent={} duplicateSkips={} spamSkips={} chatgptSkips={}",
+            "channel={} eligible={} sent={} duplicateSkips={} spamSkips={} llmSkips={}",
             channel.name,
             items.size,
             sentCount,
             duplicateCount,
             spamCount,
-            chatGPTFilteredCount
+            llmFilteredCount
         )
     }
 

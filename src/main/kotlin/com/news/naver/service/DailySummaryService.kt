@@ -4,7 +4,6 @@ import com.news.naver.client.SlackClient
 import com.news.naver.data.dto.summary.DailyNewsItem
 import com.news.naver.data.enums.NewsChannel
 import com.news.naver.repository.NewsArticleRepository
-import com.news.naver.service.ChatGPTService
 import com.news.naver.util.atStartOfDayKST
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -14,7 +13,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class DailySummaryService(
     private val newsArticleRepository: NewsArticleRepository,
-    private val chatGPTService: ChatGPTService,
+    private val llmService: LLMService,
     private val slackClient: SlackClient
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -49,11 +48,11 @@ class DailySummaryService(
 
         logger.info("Found ${newsItems.size} unique news articles delivered on $date")
 
-        // 2. ChatGPT로 요약 생성
+        // 2. LLM으로 요약 생성
         val summary = try {
-            chatGPTService.generateDailySummary(newsItems)
+            llmService.generateDailySummary(newsItems)
         } catch (e: Exception) {
-            logger.error("Failed to generate summary via ChatGPT", e)
+            logger.error("Failed to generate summary via LLM", e)
             null
         }
 
@@ -93,7 +92,7 @@ class DailySummaryService(
      * Slack으로 일일 요약을 전송합니다
      *
      * @param date 대상 날짜
-     * @param summary ChatGPT 요약 (null이면 "요약 생성 실패")
+     * @param summary LLM 요약 (null이면 "요약 생성 실패")
      * @param topKeywords TOP 20 키워드
      * @param uniqueArticleCount 고유 뉴스 수
      */
@@ -108,7 +107,7 @@ class DailySummaryService(
         val summarySection = if (summary != null) {
             "📝 *요약:*\n$summary"
         } else {
-            "📝 *요약:*\n요약 생성 실패 (ChatGPT API 미설정 또는 요청 실패)"
+            "📝 *요약:*\n요약 생성 실패 (LLM API 미설정 또는 요청 실패)"
         }
 
         val keywordsSection = if (topKeywords.isNotEmpty()) {
@@ -133,8 +132,7 @@ class DailySummaryService(
         val payload = mapOf("text" to message)
 
         try {
-            // DEV 채널로 발송 (또는 별도 SUMMARY 채널 추가 가능)
-            val result = slackClient.send(NewsChannel.DEV, payload)
+            val result = slackClient.send(NewsChannel.BREAKING, payload)
 
             if (result.success) {
                 logger.info("Daily summary sent successfully to Slack")

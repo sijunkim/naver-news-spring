@@ -1,30 +1,27 @@
 package com.news.naver.service
 
-import com.news.naver.client.ChatGPTClient
-import com.news.naver.data.dto.chatgpt.ChatGPTMessage
-import com.news.naver.data.dto.chatgpt.ChatGPTRequest
+import com.news.naver.client.LLMClient
+import com.news.naver.data.dto.llm.LLMMessage
+import com.news.naver.data.dto.llm.LLMRequest
 import com.news.naver.data.dto.summary.DailyNewsItem
-import com.news.naver.property.ChatGPTProperties
+import com.news.naver.property.LLMProperties
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
-class ChatGPTService(
-    private val chatGPTClient: ChatGPTClient,
-    private val chatGPTProperties: ChatGPTProperties
+class LLMService(
+    private val llmClient: LLMClient,
+    private val llmProperties: LLMProperties
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * Filters the provided list of news titles to exclude specific categories such as entertainment news.
-     * Uses a ChatGPT API for filtering logic if enabled.
-     *
-     * @param titles the list of news titles to filter
-     * @return a list of filtered news titles; if filtering is disabled or fails, returns the original titles
+     * 뉴스 제목 목록에서 연예 뉴스를 LLM으로 걸러낸다.
+     * LLM 비활성/오류 시 원본을 그대로 반환한다.
      */
     suspend fun filterNewsTitles(titles: List<String>): List<String> {
-        if (!chatGPTProperties.isEnabled()) {
-            logger.info("ChatGPT filtering disabled - all news will be delivered")
+        if (!llmProperties.isEnabled()) {
+            logger.info("LLM filtering disabled - all news will be delivered")
             return titles
         }
 
@@ -32,34 +29,37 @@ class ChatGPTService(
             return emptyList()
         }
 
-        val request = ChatGPTRequest(
-            model = chatGPTProperties.model,
+        val request = LLMRequest(
+            model = llmProperties.active.model,
             messages = listOf(
-                ChatGPTMessage(
+                LLMMessage(
                     role = "system",
                     content = "당신은 뉴스 필터링 전문가입니다. 광고성 뉴스와 연예 뉴스를 정확하게 구분할 수 있습니다."
                 ),
-                ChatGPTMessage(
+                LLMMessage(
                     role = "user",
                     content = buildFilterPrompt(titles)
                 )
             ),
-            temperature = chatGPTProperties.temperature,
-            maxTokens = chatGPTProperties.maxTokens
+            temperature = llmProperties.temperature,
+            maxTokens = llmProperties.maxTokens
         )
 
-        val response = runCatching { chatGPTClient.post(request) }
-            .onFailure { logger.error("Failed to filter news titles using ChatGPT API. Returning all titles.", it) }
+        val response = runCatching { llmClient.post(request) }
+            .onFailure { logger.error("Failed to filter news titles using LLM API. Returning all titles.", it) }
             .getOrNull() ?: return titles
 
         val filteredTitles = parseFilterResponse(response.choices.firstOrNull()?.message?.content, titles)
-        logger.info("ChatGPT filtered ${titles.size - filteredTitles.size} titles out of ${titles.size}")
+        logger.info("LLM filtered ${titles.size - filteredTitles.size} titles out of ${titles.size}")
         return filteredTitles
     }
 
+    /**
+     * 하루 동안 발송된 뉴스 목록을 한 단락으로 요약한다.
+     */
     suspend fun generateDailySummary(newsItems: List<DailyNewsItem>): String? {
-        if (!chatGPTProperties.isEnabled()) {
-            logger.info("ChatGPT API key is not configured. Skipping daily summary generation.")
+        if (!llmProperties.isEnabled()) {
+            logger.info("LLM API key is not configured. Skipping daily summary generation.")
             return null
         }
 
@@ -68,34 +68,34 @@ class ChatGPTService(
             return null
         }
 
-        val request = ChatGPTRequest(
-            model = chatGPTProperties.model,
+        val request = LLMRequest(
+            model = llmProperties.active.model,
             messages = listOf(
-                ChatGPTMessage(
+                LLMMessage(
                     role = "system",
                     content = "당신은 뉴스 요약 전문가입니다. 여러 뉴스 제목과 내용을 분석하여 간결하고 명확한 요약을 작성합니다."
                 ),
-                ChatGPTMessage(
+                LLMMessage(
                     role = "user",
                     content = buildSummaryPrompt(newsItems)
                 )
             ),
-            temperature = chatGPTProperties.temperature,
-            maxTokens = chatGPTProperties.summaryMaxTokens
+            temperature = llmProperties.temperature,
+            maxTokens = llmProperties.summaryMaxTokens
         )
 
-        val response = runCatching { chatGPTClient.post(request) }
-            .onFailure { logger.error("Failed to generate daily summary using ChatGPT API.", it) }
+        val response = runCatching { llmClient.post(request) }
+            .onFailure { logger.error("Failed to generate daily summary using LLM API.", it) }
             .getOrNull() ?: return null
 
         val summary = response.choices.firstOrNull()?.message?.content?.trim()
 
         if (summary.isNullOrBlank()) {
-            logger.warn("Empty summary from ChatGPT.")
+            logger.warn("Empty summary from LLM.")
             return null
         }
 
-        logger.info("ChatGPT generated daily summary for ${newsItems.size} news items")
+        logger.info("LLM generated daily summary for ${newsItems.size} news items")
         return summary
     }
 
@@ -123,7 +123,7 @@ class ChatGPTService(
 
     private fun parseFilterResponse(response: String?, originalTitles: List<String>): List<String> {
         if (response.isNullOrBlank()) {
-            logger.warn("Empty response from ChatGPT. Returning all titles.")
+            logger.warn("Empty response from LLM. Returning all titles.")
             return originalTitles
         }
 
@@ -137,7 +137,7 @@ class ChatGPTService(
 
             originalTitles.filterIndexed { index, _ -> index in validIndices }
         } catch (e: Exception) {
-            logger.error("Failed to parse ChatGPT response: $response. Returning all titles.", e)
+            logger.error("Failed to parse LLM response: $response. Returning all titles.", e)
             originalTitles
         }
     }

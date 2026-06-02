@@ -59,11 +59,18 @@ logstash:
 elk:
   active: ${ELK_ACTIVE}
 
-chatgpt:
-  enabled: ${CHATGPT_ENABLED:true}
-  api-key: ${CHATGPT_API_KEY}
-  api-url: ${CHATGPT_API_URL}
-  model: ${CHATGPT_MODEL}
-  temperature: ${CHATGPT_TEMPERATURE}
-  max-tokens: ${CHATGPT_MAX_TOKENS}
-  summary-max-tokens: ${CHATGPT_SUMMARY_MAX_TOKENS}
+llm:
+  enabled: ${LLM_ENABLED:true}
+  provider: ${LLM_PROVIDER:groq}
+  temperature: ${LLM_TEMPERATURE:0.3}
+  max-tokens: ${LLM_MAX_TOKENS:1000}
+  summary-max-tokens: ${LLM_SUMMARY_MAX_TOKENS:1500}
+  providers:
+    groq:
+      api-key: ${GROQ_API_KEY:}
+      api-url: ${GROQ_API_URL:https://api.groq.com/openai/v1/chat/completions}
+      model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      api-url: ${OPENAI_API_URL:https://api.openai.com/v1/chat/completions}
+      model: ${OPENAI_MODEL:gpt-4o-mini}

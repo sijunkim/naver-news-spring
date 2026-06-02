@@ -3,7 +3,7 @@ package com.news.naver.util.processor
 import com.news.naver.client.NaverNewsClient
 import com.news.naver.data.dto.Item
 import com.news.naver.property.NaverProperties
-import com.news.naver.service.ChatGPTService
+import com.news.naver.service.LLMService
 import com.news.naver.util.refiner.NewsRefinerService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter
 @Component
 class NewsItemProcessor(
     private val naverNewsClient: NaverNewsClient,
-    private val chatGPTService: ChatGPTService,
+    private val llmService: LLMService,
     private val refiner: NewsRefinerService,
     private val naverProperties: NaverProperties
 ) {
@@ -46,13 +46,13 @@ class NewsItemProcessor(
         }
     }
 
-    suspend fun filterByChatGPT(items: List<Item>): List<Item> {
+    suspend fun filterByLLM(items: List<Item>): List<Item> {
         if (items.isEmpty()) {
             return emptyList()
         }
 
         val titles = items.map { refiner.refineTitle(it.title) }
-        val filteredTitles = chatGPTService.filterNewsTitles(titles)
+        val filteredTitles = llmService.filterNewsTitles(titles)
         val filteredTitleSet = filteredTitles.toSet()
 
         return items.filter { item ->

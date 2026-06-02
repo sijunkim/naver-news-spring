@@ -2,8 +2,8 @@ package com.news.naver
 
 import com.news.naver.health.HealthChecker
 import com.news.naver.property.AppProperties
-import com.news.naver.property.ChatGPTProperties
 import com.news.naver.property.ElkProperties
+import com.news.naver.property.LLMProperties
 import com.news.naver.property.LogstashProperties
 import com.news.naver.property.NaverProperties
 import com.news.naver.property.SlackProperties
@@ -28,7 +28,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
     AppProperties::class,
     NaverProperties::class,
     SlackProperties::class,
-    ChatGPTProperties::class,
+    LLMProperties::class,
     ElkProperties::class,
     LogstashProperties::class
 )
