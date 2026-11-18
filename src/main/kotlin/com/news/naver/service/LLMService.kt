@@ -16,17 +16,26 @@ class LLMService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 뉴스 제목 목록에서 연예 뉴스를 LLM으로 걸러낸다.
-     * LLM 비활성/오류 시 원본을 그대로 반환한다.
+     * 제목 필터 결과.
+     *
+     * @property kept 통과시킨 제목
+     * @property judged LLM 이 실제로 판정했는지. false 면 비활성·호출 실패·응답 잘림으로 인한
+     *   "전부 통과" 폴백이다 — 호출자는 이 결과를 판정으로 기억(캐시)하면 안 된다.
      */
-    suspend fun filterNewsTitles(titles: List<String>): List<String> {
+    data class TitleFilterResult(val kept: List<String>, val judged: Boolean)
+
+    /**
+     * 뉴스 제목 목록에서 연예 뉴스를 LLM으로 걸러낸다.
+     * LLM 비활성/오류 시 원본을 그대로 반환한다(judged=false).
+     */
+    suspend fun filterNewsTitles(titles: List<String>): TitleFilterResult {
         if (!llmProperties.isEnabled()) {
             logger.info("LLM filtering disabled - all news will be delivered")
-            return titles
+            return TitleFilterResult(titles, judged = false)
         }
 
         if (titles.isEmpty()) {
-            return emptyList()
+            return TitleFilterResult(emptyList(), judged = true)
         }
 
         val request = LLMRequest(
@@ -42,16 +51,20 @@ class LLMService(
                 )
             ),
             temperature = llmProperties.temperature,
-            maxTokens = llmProperties.maxTokens
+            maxTokens = llmProperties.maxTokens,
+            reasoningEffort = llmProperties.active.reasoningEffortOrNull
         )
 
         val response = runCatching { llmClient.post(request) }
             .onFailure { logger.error("Failed to filter news titles using LLM API. Returning all titles.", it) }
-            .getOrNull() ?: return titles
+            .getOrNull() ?: return TitleFilterResult(titles, judged = false)
 
-        val filteredTitles = parseFilterResponse(response.choices.firstOrNull()?.message?.content, titles)
-        logger.info("LLM filtered ${titles.size - filteredTitles.size} titles out of ${titles.size}")
-        return filteredTitles
+        val choice = response.choices.firstOrNull()
+        val result = parseFilterResponse(choice?.message?.content, choice?.finishReason, titles)
+        if (result.judged) {
+            logger.info("LLM filtered ${titles.size - result.kept.size} titles out of ${titles.size}")
+        }
+        return result
     }
 
     /**
@@ -81,7 +94,8 @@ class LLMService(
                 )
             ),
             temperature = llmProperties.temperature,
-            maxTokens = llmProperties.summaryMaxTokens
+            maxTokens = llmProperties.summaryMaxTokens,
+            reasoningEffort = llmProperties.active.reasoningEffortOrNull
         )
 
         val response = runCatching { llmClient.post(request) }
@@ -121,10 +135,26 @@ class LLMService(
         """.trimIndent()
     }
 
-    private fun parseFilterResponse(response: String?, originalTitles: List<String>): List<String> {
+    /**
+     * 번호 목록 응답을 제목으로 되돌린다.
+     *
+     * 빈 응답은 finish_reason 으로 구분한다.
+     * - `stop`: 모델이 정상 종료하며 "남길 번호 없음"으로 답한 것 → 전부 제외(판정).
+     *   gpt-oss 는 목록이 전부 연예 뉴스면 빈 문자열을 돌려준다(2026-11-18 실측 4/4건).
+     * - 그 외(`length` 등): 추론에 토큰을 다 써 답을 못 낸 것 → 전부 통과(폴백, 미판정).
+     */
+    internal fun parseFilterResponse(
+        response: String?,
+        finishReason: String?,
+        originalTitles: List<String>
+    ): TitleFilterResult {
         if (response.isNullOrBlank()) {
-            logger.warn("Empty response from LLM. Returning all titles.")
-            return originalTitles
+            return if (finishReason == "stop") {
+                TitleFilterResult(emptyList(), judged = true)
+            } else {
+                logger.warn("Empty response from LLM (finish_reason=$finishReason). Returning all titles.")
+                TitleFilterResult(originalTitles, judged = false)
+            }
         }
 
         return try {
@@ -135,10 +165,10 @@ class LLMService(
                 .map { it - 1 }
                 .toSet()
 
-            originalTitles.filterIndexed { index, _ -> index in validIndices }
+            TitleFilterResult(originalTitles.filterIndexed { index, _ -> index in validIndices }, judged = true)
         } catch (e: Exception) {
             logger.error("Failed to parse LLM response: $response. Returning all titles.", e)
-            originalTitles
+            TitleFilterResult(originalTitles, judged = false)
         }
     }
 

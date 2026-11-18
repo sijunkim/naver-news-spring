@@ -28,11 +28,19 @@ data class LLMProperties(
     val summaryMaxTokens: Int = 1500,
     val providers: Map<String, ProviderConfig> = emptyMap()
 ) {
+    /**
+     * @property reasoningEffort 추론형 모델에 보낼 `reasoning_effort` 값(low/medium/high). 비우면 보내지 않는다.
+     */
     data class ProviderConfig(
         val apiKey: String = "",
         val apiUrl: String = "",
-        val model: String = ""
-    )
+        val model: String = "",
+        val reasoningEffort: String = ""
+    ) {
+        /** 요청 본문에 넣을 값. 빈 문자열이면 null(필드 생략). */
+        val reasoningEffortOrNull: String?
+            get() = reasoningEffort.ifBlank { null }
+    }
 
     /**
      * [provider] 가 가리키는 자격증명. 등록되지 않은 provider면 예외.
