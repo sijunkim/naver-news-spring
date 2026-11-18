@@ -17,9 +17,13 @@ RUN ./gradlew clean bootJar --no-daemon \
   && find build/libs -name "*-plain.jar" -delete \
   && cp build/libs/*.jar /workspace/app.jar
 
-FROM eclipse-temurin:17-jre-jammy AS runtime
+FROM amazoncorretto:17-alpine AS runtime
 
 WORKDIR /app
+
+# 기본 시간대를 기존 Ubuntu 이미지와 같은 Etc/UTC 로 맞춘다.
+# Alpine 은 /etc/localtime 이 없어 TZ 를 비우면 JVM 이 'GMT' 로 잡는다(오프셋은 같지만 존 ID 가 달라진다).
+ENV TZ=Etc/UTC
 
 COPY --from=build /workspace/app.jar /app/app.jar
 
